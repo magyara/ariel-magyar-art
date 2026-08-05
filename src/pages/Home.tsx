@@ -85,7 +85,7 @@ export default function Home() {
           </p>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link to="/artwork" style={solidButton}>
+            <Link to="/artwork" className="btn-solid" style={solidButton}>
               Explore Artwork
             </Link>
             {/* Commissions not open yet — hidden along with the /commissions route.

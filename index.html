@@ -39,10 +39,23 @@
       a {
         color: #ded3c4;
         text-decoration: none;
+        transition: color 180ms ease, opacity 180ms ease;
       }
       a:hover,
       a:focus-visible {
-        color: #c8a263;
+        color: #c8a263 !important;
+      }
+      a:has(img):hover,
+      a:has(img):focus-visible {
+        opacity: 0.82;
+      }
+      a.btn-solid {
+        transition: color 180ms ease, background-color 180ms ease;
+      }
+      a.btn-solid:hover,
+      a.btn-solid:focus-visible {
+        color: #14231c !important;
+        background: #ded3c4 !important;
       }
       input,
       textarea,
