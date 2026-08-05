@@ -39,12 +39,13 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <Link
           to="/"
+          className="no-hover"
           style={{
             fontFamily: theme.serif,
             fontSize: 20,
             letterSpacing: '0.16em',
             textTransform: 'uppercase',
-            color: theme.paper,
+            color: theme.brass,
             padding: '12px 0',
           }}
         >
