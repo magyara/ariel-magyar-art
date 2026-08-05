@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
 import { findArtwork } from '../data/artworks';
 import NotFound from './NotFound';
-import { theme, text, eyebrow, solidButton } from '../theme';
+import { theme, text, eyebrow } from '../theme';
 
 export default function ArtworkDetail() {
   const { id } = useParams();
@@ -180,12 +180,14 @@ export default function ArtworkDetail() {
             ))}
           </div>
 
+          {/* Inquiries not open yet — hidden along with the /contact route.
           <Link
             to={`/contact?piece=${encodeURIComponent(piece.title)}`}
             style={{ ...solidButton, display: 'block', width: '100%', textAlign: 'center' }}
           >
             Inquire about this piece
           </Link>
+          */}
           <div style={{ fontSize: 14, color: 'rgba(244,235,225,0.65)', marginTop: 14, textAlign: 'center' }}>
             Shipping and framing discussed personally.
           </div>

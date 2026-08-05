@@ -11,7 +11,6 @@ import {
   text,
   eyebrow,
   solidButton,
-  ghostButton,
   underlineLink,
   placeholderTile,
   placeholderLabel,
@@ -36,32 +35,41 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <div style={{ position: 'relative', minHeight: '88vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'relative',
+          minHeight: '46vh',
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+          backgroundColor: theme.inkDeep,
+          backgroundImage:
+            'url(/images/roses_green.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
         <div
           style={{
             position: 'relative',
             width: '100%',
             textAlign: 'center',
-            padding: `clamp(70px,10vw,110px) ${theme.pageX}`,
+            padding: `clamp(50px,7vw,80px) ${theme.pageX}`,
             maxWidth: 1180,
             margin: '0 auto',
           }}
         >
-          <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', margin: 0 }}>
-            {SITE.name}
-          </h1>
-
-          <div
+          <h1
             style={{
-              ...placeholderTile,
-              maxWidth: 640,
-              margin: '0 auto 40px',
-              aspectRatio: '16 / 9',
-              justifyContent: 'flex-start',
+              fontFamily: theme.serif,
+              fontWeight: 300,
+              fontSize: 'clamp(36px,5vw,64px)',
+              letterSpacing: '0.02em',
+              margin: '0 0 24px',
             }}
           >
-            <span style={{ ...placeholderLabel, textAlign: 'left' }}>SIGNATURE GIF — Ariel writing her signature</span>
-          </div>
+            Ariel Magyar
+          </h1>
 
           <p
             style={{
@@ -80,9 +88,11 @@ export default function Home() {
             <Link to="/artwork" style={solidButton}>
               Explore Artwork
             </Link>
+            {/* Commissions not open yet — hidden along with the /commissions route.
             <Link to="/commissions" style={ghostButton}>
               Commission a Piece
             </Link>
+            */}
           </div>
         </div>
       </div>

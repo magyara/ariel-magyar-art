@@ -6,9 +6,9 @@ import { useNarrow } from '../hooks/useMediaQuery';
 const LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Artwork', to: '/artwork' },
-  { label: 'Commissions', to: '/commissions' },
+  // { label: 'Commissions', to: '/commissions' },
   { label: 'About', to: '/about' },
-  { label: 'Contact', to: '/contact' },
+  // { label: 'Contact', to: '/contact' },
 ];
 
 export default function Header() {
