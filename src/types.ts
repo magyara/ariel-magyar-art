@@ -30,6 +30,13 @@ export interface Artwork {
   story: string;
 }
 
+export interface InstagramPost {
+  id: string;
+  imageUrl: string;
+  permalink: string;
+  caption?: string;
+}
+
 export interface InquiryPayload {
   kind: 'contact' | 'commission';
   name: string;

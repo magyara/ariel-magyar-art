@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
 import { ARTWORKS, SITE } from '../data/artworks';
+import { fetchInstagramFeed } from '../lib/api';
 import { useReveal } from '../hooks/useReveal';
 import { useNarrow } from '../hooks/useMediaQuery';
+import type { InstagramPost } from '../types';
 import {
   theme,
   text,
@@ -18,6 +21,17 @@ export default function Home() {
   useReveal();
   const narrow = useNarrow();
   const featured = ARTWORKS.filter((a) => a.featured);
+  const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    fetchInstagramFeed().then((posts) => {
+      if (live) setIgPosts(posts);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   return (
     <div>
@@ -260,11 +274,29 @@ export default function Home() {
           </h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
-          {['IG 01', 'IG 02', 'IG 03', 'IG 04', 'IG 05'].map((slot) => (
-            <div key={slot} style={{ ...placeholderTile, aspectRatio: '1', padding: 12 }}>
-              <span style={placeholderLabel}>{slot}</span>
-            </div>
-          ))}
+          {igPosts.length > 0
+            ? igPosts.map((post) => (
+                <a
+                  key={post.id}
+                  href={post.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={post.caption ? post.caption.slice(0, 140) : 'View on Instagram'}
+                  style={{ display: 'block', aspectRatio: '1', overflow: 'hidden' }}
+                >
+                  <img
+                    src={post.imageUrl}
+                    alt={post.caption ? post.caption.slice(0, 140) : 'Instagram post'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    loading="lazy"
+                  />
+                </a>
+              ))
+            : ['IG 01', 'IG 02', 'IG 03', 'IG 04', 'IG 05'].map((slot) => (
+                <div key={slot} style={{ ...placeholderTile, aspectRatio: '1', padding: 12 }}>
+                  <span style={placeholderLabel}>{slot}</span>
+                </div>
+              ))}
         </div>
       </div>
     </div>

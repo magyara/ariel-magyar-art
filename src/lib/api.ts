@@ -1,4 +1,4 @@
-import type { InquiryPayload } from '../types';
+import type { InquiryPayload, InstagramPost } from '../types';
 
 export interface InquiryResult {
   ok: boolean;
@@ -30,5 +30,16 @@ export async function sendInquiry(payload: InquiryPayload): Promise<InquiryResul
       ok: false,
       message: 'Could not reach the server. Please email hello@arielmagyar.art directly.',
     };
+  }
+}
+
+export async function fetchInstagramFeed(): Promise<InstagramPost[]> {
+  try {
+    const res = await fetch('/api/instagram');
+    if (!res.ok) return [];
+    const data = (await res.json()) as { posts?: InstagramPost[] };
+    return data.posts ?? [];
+  } catch {
+    return [];
   }
 }
