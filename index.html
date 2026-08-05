@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ariel Magyar Art</title>
+    <meta
+      name="description"
+      content="Arlington, VA-based artist capturing the feelings behind everyday moments. Oil pastel landscapes, florals, and city scenes."
+    />
+    <meta name="theme-color" content="#14231C" />
+    <meta property="og:title" content="Ariel Magyar Art" />
+    <meta
+      property="og:description"
+      content="Arlington, VA-based artist capturing the feelings behind everyday moments."
+    />
+    <meta property="og:image" content="/images/wisteria_frame.jpg" />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Karla:wght@300;400;500&family=Caveat:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0b1611;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      a {
+        color: #ded3c4;
+        text-decoration: none;
+      }
+      a:hover,
+      a:focus-visible {
+        color: #c8a263;
+      }
+      input,
+      textarea,
+      select,
+      button {
+        font-family: inherit;
+        font-size: inherit;
+      }
+      button {
+        background: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+        color: inherit;
+        text-align: inherit;
+        cursor: pointer;
+      }
+      img {
+        max-width: 100%;
+      }
+      :focus-visible {
+        outline: 2px solid #c8a263;
+        outline-offset: 3px;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-bottom-color: #c8a263 !important;
+      }
+      ::selection {
+        background: #ded3c4;
+        color: #0b1611;
+      }
+      [data-reveal] {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity 900ms cubic-bezier(0.2, 0.7, 0.3, 1),
+          transform 900ms cubic-bezier(0.2, 0.7, 0.3, 1);
+      }
+      [data-reveal='shown'] {
+        opacity: 1;
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        [data-reveal] {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
