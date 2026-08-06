@@ -35,6 +35,7 @@ export const ARTWORKS: Artwork[] = [
     year: '2026',
     avail: 'Available',
     price: '$283',
+    featured: true,
     images: [
       { img: img('roses_frame.jpg'), label: 'Framed' },
       { img: img('roses_full.jpg'), label: 'Full view' },
