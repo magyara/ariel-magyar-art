@@ -188,9 +188,6 @@ export default function ArtworkDetail() {
             Inquire about this piece
           </Link>
           */}
-          <div style={{ fontSize: 14, color: 'rgba(244,235,225,0.65)', marginTop: 14, textAlign: 'center' }}>
-            Shipping and framing discussed personally.
-          </div>
         </div>
       </div>
     </div>

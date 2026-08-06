@@ -21,7 +21,7 @@ export const ARTWORKS: Artwork[] = [
       { img: img('wisteria_full.jpg'), label: 'Full view' },
       { img: img('wisteria_close.jpg'), label: 'Detail' },
     ],
-    display: { venue: 'Alliance Gallery', city: 'Clarendon, VA' },
+    display: { venue: 'Alliance Gallery', city: 'Arlington, VA' },
     story:
       'I stumbled upon this alleyway in Georgetown after being rejected from the Dumbarton Oaks Gardens, which was sold out for the day. Determined to see some springtime wisteria, I noticed the flowers on a side street. Walking down the alleyway felt like a scene out of a movie where I tread lightly on cherry blossom petals with fragrant wisteria overhead. I sat on the street sketching the beautiful flowers for an hour until the sun started to set.',
   },
