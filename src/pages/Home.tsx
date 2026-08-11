@@ -16,6 +16,26 @@ import {
   placeholderLabel,
 } from '../theme';
 
+const instagramButton = {
+  ...solidButton,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 10,
+  background: 'transparent',
+  color: theme.brass,
+  border: `1px solid ${theme.brass}`,
+};
+
+function InstagramMark() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" focusable="false">
+      <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="17.3" cy="6.7" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function Home() {
   useReveal();
   const narrow = useNarrow();
@@ -85,9 +105,23 @@ export default function Home() {
           </p>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link to="/artwork" className="btn-solid" style={solidButton}>
+            <Link
+              to="/artwork"
+              className="btn-solid"
+              style={{ ...solidButton, border: `1px solid ${theme.inkDeep}` }}
+            >
               Explore Artwork
             </Link>
+            <a
+              href={SITE.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-instagram"
+              style={instagramButton}
+            >
+              <InstagramMark />
+              Follow on Instagram
+            </a>
             {/* Commissions not open yet — hidden along with the /commissions route.
             <Link to="/commissions" style={ghostButton}>
               Commission a Piece
