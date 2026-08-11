@@ -64,7 +64,7 @@ export default function Home() {
           overflow: 'hidden',
           backgroundColor: theme.inkDeep,
           backgroundImage:
-            'url(/images/roses_green.jpg)',
+            'linear-gradient(rgba(11,22,17,0.3),rgba(11,22,17,0.3)),url(/images/roses_green.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
