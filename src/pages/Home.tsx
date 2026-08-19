@@ -83,9 +83,9 @@ export default function Home() {
             style={{
               fontFamily: theme.serif,
               fontWeight: 300,
-              fontSize: 'clamp(36px,5vw,64px)',
+              fontSize: 'clamp(56px,5vw,94px)',
               letterSpacing: '0.02em',
-              margin: '0 0 24px',
+              margin: '0 0 14px',
             }}
           >
             Ariel Magyar
@@ -94,14 +94,14 @@ export default function Home() {
           <p
             style={{
               maxWidth: 600,
-              fontSize: 19,
-              lineHeight: 1.65,
+              fontSize: 20,
+              lineHeight: 1.2,
               color: 'rgba(244,235,225,0.82)',
               margin: '0 auto 40px',
               textWrap: 'pretty',
             }}
           >
-            Arlington, VA-based artist capturing the feelings behind everyday moments
+            Artist based in Arlington, VA
           </p>
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -262,7 +262,7 @@ export default function Home() {
               marginBottom: 26,
             }}
           >
-            The Artist
+            The process 
           </div>
           <p
             style={{
@@ -288,7 +288,7 @@ export default function Home() {
             that any fur will be diligently plucked from the pastels before sealing.
           </p>
           <Link to="/about" style={underlineLink}>
-            More about Ariel
+            More about Me
           </Link>
         </div>
 

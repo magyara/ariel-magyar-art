@@ -18,6 +18,10 @@ export default function Header() {
 
   useEffect(() => setOpen(false), [pathname, narrow]);
 
+  const handleHomeClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const navOpen = !narrow || open;
 
   return (
@@ -36,9 +40,18 @@ export default function Header() {
         borderBottom: `1px solid ${theme.rule}`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: narrow ? 'wrap' : 'nowrap',
+        }}
+      >
         <Link
           to="/"
+          onClick={handleHomeClick}
           className="no-hover"
           style={{
             fontFamily: theme.serif,
@@ -52,7 +65,7 @@ export default function Header() {
           Ariel Magyar
         </Link>
 
-        {narrow && (
+        {narrow ? (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -73,36 +86,55 @@ export default function Header() {
             <span aria-hidden style={{ display: 'block', width: 24, height: 1, background: theme.paper }} />
             <span aria-hidden style={{ display: 'block', width: 16, height: 1, background: theme.paper }} />
           </button>
+        ) : (
+          <nav
+            id="primary-nav"
+            aria-label="Main"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '4px 24px',
+            }}
+          >
+            {LINKS.map((l) => (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                onClick={handleHomeClick}
+                end={l.to === '/'}
+                style={({ isActive }) => ({
+                  ...eyebrow,
+                  color: isActive ? theme.paper : 'rgba(244,235,225,0.74)',
+                  padding: '12px 0',
+                  borderBottom: `1px solid ${isActive ? theme.brass : 'transparent'}`,
+                })}
+              >
+                {l.label}
+              </NavLink>
+            ))}
+          </nav>
         )}
       </div>
 
-      {navOpen && (
+      {narrow && navOpen && (
         <nav
           id="primary-nav"
           aria-label="Main"
-          style={
-            narrow
-              ? { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 2, padding: '8px 0 14px' }
-              : {
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  gap: '4px 24px',
-                  marginTop: -46,
-                }
-          }
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 2, padding: '8px 0 14px' }}
         >
           {LINKS.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
+              onClick={handleHomeClick}
               end={l.to === '/'}
               style={({ isActive }) => ({
                 ...eyebrow,
                 color: isActive ? theme.paper : 'rgba(244,235,225,0.74)',
                 padding: '12px 0',
-                width: narrow ? '100%' : 'auto',
+                width: '100%',
                 borderBottom: `1px solid ${isActive ? theme.brass : 'transparent'}`,
               })}
             >
