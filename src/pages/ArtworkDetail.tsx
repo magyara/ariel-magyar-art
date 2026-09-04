@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
-import { findArtwork } from '../data/artworks';
+import { useArtwork } from '../hooks/useArtworks';
 import NotFound from './NotFound';
 import { theme, text, eyebrow } from '../theme';
 
 export default function ArtworkDetail() {
   const { id } = useParams();
-  const piece = findArtwork(id);
+  const { data: piece, loading, error} = useArtwork(id);
+  
   const [shot, setShot] = useState(0);
 
+  if (!id) {
+    return <NotFound />
+  }
+
+  if (loading) return null;
   if (!piece) return <NotFound />;
 
   const views = piece.images;
@@ -149,11 +155,6 @@ export default function ArtworkDetail() {
                 <div style={{ fontSize: 14, letterSpacing: '0.06em', color: 'rgba(244,235,225,0.7)' }}>
                   {piece.display.dates}
                 </div>
-              )}
-              {piece.display.note && (
-                <p style={{ fontSize: 15, lineHeight: 1.7, color: text.softer, margin: '12px 0 0', textWrap: 'pretty' }}>
-                  {piece.display.note}
-                </p>
               )}
             </div>
           )}

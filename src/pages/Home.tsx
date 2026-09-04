@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
-import { ARTWORKS, SITE } from '../data/artworks';
+import { useArtworks } from '../hooks/useArtworks';
+import { SITE } from '../data/artworks';
 import { fetchInstagramFeed } from '../lib/api';
 import { useReveal } from '../hooks/useReveal';
 import { useNarrow } from '../hooks/useMediaQuery';
@@ -37,10 +38,12 @@ function InstagramMark() {
 }
 
 export default function Home() {
-  useReveal();
   const narrow = useNarrow();
+  const { data: ARTWORKS, loading, error} = useArtworks();
   const featured = ARTWORKS.filter((a) => a.featured);
   const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
+
+  useReveal([loading]);
 
   useEffect(() => {
     let live = true;

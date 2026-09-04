@@ -1,4 +1,4 @@
-export type Availability = 'Available' | 'On display' | 'Unavailable' | 'Sold';
+export type Availability = 'Available' | 'On Display' | 'Unavailable' | 'Sold';
 
 export interface ArtworkImage {
   img: string;
@@ -11,7 +11,6 @@ export interface DisplayInfo {
   venue: string;
   city: string;
   dates?: string;
-  note?: string;
 }
 
 export interface Artwork {

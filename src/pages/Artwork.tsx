@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
-import { ARTWORKS, CATEGORIES } from '../data/artworks';
+import { useArtworks } from '../hooks/useArtworks';
+import { useCategories } from '../hooks/useCategories';
 import { useReveal } from '../hooks/useReveal';
 import { theme, text, h1, eyebrow, availColor } from '../theme';
 
 export default function Artwork() {
+  const { data: ARTWORKS, loading, error} = useArtworks();
+  const { data: CATEGORIES = []} = useCategories();
   const [cat, setCat] = useState<string>('All');
+
   const shown = ARTWORKS.filter((a) => cat === 'All' || a.cats.includes(cat));
-  useReveal([cat]);
+
+  useReveal([cat, loading, shown.length]);
 
   return (
     <div
