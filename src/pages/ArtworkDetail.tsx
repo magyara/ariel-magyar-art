@@ -7,7 +7,7 @@ import { theme, text, eyebrow } from '../theme';
 
 export default function ArtworkDetail() {
   const { id } = useParams();
-  const { data: piece, loading, error} = useArtwork(id);
+  const { data: piece, loading} = useArtwork(id);
   
   const [shot, setShot] = useState(0);
 

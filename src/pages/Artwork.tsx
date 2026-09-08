@@ -7,7 +7,7 @@ import { useReveal } from '../hooks/useReveal';
 import { theme, text, h1, eyebrow, availColor } from '../theme';
 
 export default function Artwork() {
-  const { data: ARTWORKS, loading, error} = useArtworks();
+  const { data: ARTWORKS, loading} = useArtworks();
   const { data: CATEGORIES = []} = useCategories();
   const [cat, setCat] = useState<string>('All');
 
