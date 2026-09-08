@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import  { neon } from '@neondatabase/serverless';
-import { loadArtworkRow } from './_lib/artwork';
-import type { Artwork } from '../src/types';
+import { loadArtworkRow } from './_lib/artwork.js';
+import type { Artwork } from '../src/types.js';
 
 const dbUrl = process.env.DATABASE_URL
 

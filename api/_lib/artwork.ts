@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import type { Artwork, ArtworkImage } from '../../src/types';
+import type { Artwork, ArtworkImage } from '../../src/types.js';
 
 const sql = neon(process.env.DATABASE_URL!);
 

@@ -1,4 +1,4 @@
-import type { Inquiry } from './schema';
+import type { Inquiry } from './schema.js';
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

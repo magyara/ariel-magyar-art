@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { inquirySchema } from './_lib/schema';
-import { sendMail } from './_lib/mail';
-import { rateLimited } from './_lib/rateLimit';
+import { inquirySchema } from './_lib/schema.js';
+import { sendMail } from './_lib/mail.js';
+import { rateLimited } from './_lib/rateLimit.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
