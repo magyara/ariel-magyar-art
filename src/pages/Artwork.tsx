@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
+import { SkeletonTile, SkeletonLine } from '../components/SkeletonTile';
 import { useArtworks } from '../hooks/useArtworks';
 import { useCategories } from '../hooks/useCategories';
 import { useReveal } from '../hooks/useReveal';
 import { theme, text, h1, eyebrow, availColor } from '../theme';
 
 export default function Artwork() {
-  const { data: ARTWORKS, loading} = useArtworks();
+  const { data: ARTWORKS, loading, error } = useArtworks();
   const { data: CATEGORIES = []} = useCategories();
   const [cat, setCat] = useState<string>('All');
 
@@ -53,8 +54,21 @@ export default function Artwork() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '44px 32px' }}>
-        {shown.map((a) => (
+      {error ? (
+        <p style={{ ...eyebrow, color: text.faint }}>Couldn't load artwork right now.</p>
+      ) : (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '52px 40px' }}>
+        {loading
+          ? [0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i}>
+                <SkeletonTile ratio="1 / 1" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <SkeletonLine width="70%" height={22} />
+                  <SkeletonLine width="50%" height={13} />
+                </div>
+              </div>
+            ))
+          : shown.map((a) => (
           <Link
             key={a.id}
             to={`/artwork/${a.id}`}
@@ -77,7 +91,7 @@ export default function Artwork() {
             </div>
             <div style={{ fontSize: 14, color: text.softer, marginTop: 6 }}>
               {a.medium} · {a.size} · {a.year}
-              {a.price !== '—' ? ` · ${a.price}` : ''}
+              {/* {a.price !== '—' ? ` · ${a.price}` : ''} */}
             </div>
             {a.display && (
               <div
@@ -93,8 +107,9 @@ export default function Artwork() {
               </div>
             )}
           </Link>
-        ))}
+            ))}
       </div>
+      )}
     </div>
   );
 }

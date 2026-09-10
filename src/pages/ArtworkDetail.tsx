@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
+import { SkeletonTile, SkeletonLine } from '../components/SkeletonTile';
 import { useArtwork } from '../hooks/useArtworks';
 import NotFound from './NotFound';
 import { theme, text, eyebrow } from '../theme';
@@ -8,14 +9,14 @@ import { theme, text, eyebrow } from '../theme';
 export default function ArtworkDetail() {
   const { id } = useParams();
   const { data: piece, loading} = useArtwork(id);
-  
+
   const [shot, setShot] = useState(0);
 
   if (!id) {
     return <NotFound />
   }
 
-  if (loading) return null;
+  if (loading) return <ArtworkDetailSkeleton />;
   if (!piece) return <NotFound />;
 
   const views = piece.images;
@@ -28,7 +29,7 @@ export default function ArtworkDetail() {
     ['Year', piece.year],
     ['Place', piece.place],
     ['Availability', piece.avail],
-    ['Price', piece.price],
+    // ['Price', piece.price],
   ];
 
   const step = (delta: number) => setShot((s) => (s + delta + views.length) % views.length);
@@ -189,6 +190,60 @@ export default function ArtworkDetail() {
             Inquire about this piece
           </Link>
           */}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArtworkDetailSkeleton() {
+  return (
+    <div
+      style={{
+        padding: `clamp(40px,7vw,70px) ${theme.pageX} clamp(70px,11vw,130px)`,
+        maxWidth: 1280,
+        margin: '0 auto',
+      }}
+    >
+      <div style={{ ...eyebrow, color: 'rgba(244,235,225,0.72)', display: 'inline-block', marginBottom: 32, padding: '10px 0' }}>
+        ← All artwork
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))',
+          gap: 'clamp(36px,5vw,70px)',
+          alignItems: 'start',
+        }}
+      >
+        <div>
+          <SkeletonTile ratio="4 / 5" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginTop: 14 }}>
+            <SkeletonTile ratio="1 / 1" />
+            <SkeletonTile ratio="1 / 1" />
+            <SkeletonTile ratio="1 / 1" />
+          </div>
+        </div>
+
+        <div>
+          <SkeletonLine width="20%" height={22} />
+          <div style={{ height: 14 }} />
+          <SkeletonLine width="55%" height={40} />
+          <div style={{ height: 24 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 34 }}>
+            <SkeletonLine width="95%" height={14} />
+            <SkeletonLine width="88%" height={14} />
+            <SkeletonLine width="60%" height={14} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(244,235,225,0.12)' }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} style={{ padding: '14px 2px', background: theme.ink }}>
+                <SkeletonLine width={`${40 + (i % 3) * 10}%`} height={13} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

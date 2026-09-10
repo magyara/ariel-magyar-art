@@ -70,17 +70,3 @@ src/
   pages/                Home, Artwork, ArtworkDetail, Commissions, About, Contact, NotFound
 public/images/          artwork photography and process shots
 ```
-
-## Adding an artwork
-
-Add an entry to `ARTWORKS` in `src/data/artworks.ts` and drop its photos in
-`public/images/`. `featured: true` surfaces it on the home page; `display` adds
-the "Currently on view" panel. The gallery, detail page, and category filters
-all read from that one array.
-
-## Still to do
-
-- Real Instagram thumbnails (the home grid has five placeholder tiles)
-- Signature GIF in the hero
-- Commission photo below the commission form
-- Consider serving images through Vercel's image optimization once traffic warrants

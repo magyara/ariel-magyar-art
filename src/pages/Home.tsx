@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FramedImage from '../components/FramedImage';
+import { SkeletonTile, SkeletonLine } from '../components/SkeletonTile';
 import { useArtworks } from '../hooks/useArtworks';
 import { SITE } from '../data/artworks';
 import { fetchInstagramFeed } from '../lib/api';
@@ -39,7 +40,7 @@ function InstagramMark() {
 
 export default function Home() {
   const narrow = useNarrow();
-  const { data: ARTWORKS, loading} = useArtworks();
+  const { data: ARTWORKS, loading, error } = useArtworks();
   const featured = ARTWORKS.filter((a) => a.featured);
   const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
 
@@ -163,6 +164,15 @@ export default function Home() {
             </Link>
           </div>
 
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 110 }}>
+              {[0, 1].map((i) => (
+                <FeaturedSkeletonRow key={i} flipped={i % 2 === 1} narrow={narrow} />
+              ))}
+            </div>
+          ) : error ? (
+            <p style={{ ...eyebrow, color: text.faint }}>Couldn't load artwork right now.</p>
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 110 }}>
             {featured.map((w, i) => {
               const flipped = i % 2 === 1;
@@ -217,7 +227,7 @@ export default function Home() {
                     </p>
                     <div style={{ fontSize: 13, letterSpacing: '0.12em', color: 'rgba(244,235,225,0.65)', marginBottom: 10 }}>
                       {w.medium} · {w.size} · {w.year}
-                      {w.price !== '—' ? ` · ${w.price}` : ''}
+                      {/* {w.price !== '—' ? ` · ${w.price}` : ''} */}
                     </div>
                     {w.display && (
                       <div
@@ -240,6 +250,7 @@ export default function Home() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
@@ -345,6 +356,30 @@ export default function Home() {
                 </div>
               ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedSkeletonRow({ flipped, narrow }: { flipped: boolean; narrow: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: narrow ? '1fr' : flipped ? '0.9fr 1.1fr' : '1.1fr 0.9fr',
+        gap: 'clamp(30px,5vw,56px)',
+        alignItems: 'start',
+      }}
+    >
+      <div style={{ order: narrow ? 1 : flipped ? 2 : 1 }}>
+        <SkeletonTile ratio="5 / 4" />
+      </div>
+      <div style={{ order: narrow ? 2 : flipped ? 1 : 2, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <SkeletonLine width="30%" height={22} />
+        <SkeletonLine width="60%" height={36} />
+        <SkeletonLine width="90%" height={14} />
+        <SkeletonLine width="75%" height={14} />
+        <SkeletonLine width="45%" height={13} />
       </div>
     </div>
   );
