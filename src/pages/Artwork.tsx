@@ -57,7 +57,7 @@ export default function Artwork() {
       {error ? (
         <p style={{ ...eyebrow, color: text.faint }}>Couldn't load artwork right now.</p>
       ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '44px 32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '52px 40px' }}>
         {loading
           ? [0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i}>
