@@ -13,7 +13,7 @@ export default function NotFound() {
     >
       <h1 style={{ ...h1, marginBottom: 24 }}>Not found</h1>
       <p style={{ fontSize: 18, lineHeight: 1.7, color: 'rgba(244,235,225,0.72)', margin: '0 0 40px' }}>
-        That page doesn’t exist — but the artwork does.
+        That page doesn’t exist.
       </p>
       <Link to="/artwork" style={underlineLink}>
         See all artwork

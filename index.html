@@ -118,6 +118,23 @@
           transition: none;
         }
       }
+      @keyframes skeletonPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      [data-skeleton] {
+        animation: skeletonPulse 1.6s ease-in-out infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        [data-skeleton] {
+          animation: none;
+        }
+      }
     </style>
   </head>
   <body>
