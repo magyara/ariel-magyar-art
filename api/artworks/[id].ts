@@ -20,6 +20,8 @@ export default async function handler(
             return res.status(405).json({ error: 'Method not allowed' });
         }
 
+        res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+
         const id = parseInt(req.query.id as string);
 
         const artworksResult = await sql`
