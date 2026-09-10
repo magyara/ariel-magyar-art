@@ -22,14 +22,27 @@ export default async function handler(
 
         res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 
-        const artworksResult = await sql`
-            SELECT
-                id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
-            FROM
-                artworks
-            ORDER BY
-                id
-        `;
+        const featuredOnly = req.query.featured === 'true';
+
+        const artworksResult = featuredOnly
+            ? await sql`
+                SELECT
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                FROM
+                    artworks
+                WHERE
+                    featured = true
+                ORDER BY
+                    id
+            `
+            : await sql`
+                SELECT
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                FROM
+                    artworks
+                ORDER BY
+                    id
+            `;
 
         const artworks = await loadArtworksBatch(artworksResult);
 

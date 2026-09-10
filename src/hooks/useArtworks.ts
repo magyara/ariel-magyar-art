@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { Artwork } from '../types';
 
-export function useArtworks(): { data: Artwork[]; loading: boolean; error: string | null }  { 
+export function useArtworks(options?: { featured?: boolean }): { data: Artwork[]; loading: boolean; error: string | null }  {
     const [data, setData] = useState<Artwork[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const featured = options?.featured ?? false;
 
     useEffect(() => {
-        fetch('/api/artworks')
+        const url = featured ? '/api/artworks?featured=true' : '/api/artworks';
+
+        fetch(url)
             .then(async (res) => {
                 if (!res.ok) {
                     throw new Error(`Request failed with status ${res.status}`);
@@ -26,7 +29,7 @@ export function useArtworks(): { data: Artwork[]; loading: boolean; error: strin
                 setData([]);
                 setLoading(false);
             });
-    }, []);
+    }, [featured]);
 
     return { data, loading, error };
 }
