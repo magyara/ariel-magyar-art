@@ -227,7 +227,7 @@ export default function Home() {
                     </p>
                     <div style={{ fontSize: 13, letterSpacing: '0.12em', color: 'rgba(244,235,225,0.65)', marginBottom: 10 }}>
                       {w.medium} · {w.size} · {w.year}
-                      {w.price !== '—' ? ` · ${w.price}` : ''}
+                      {/* {w.price !== '—' ? ` · ${w.price}` : ''} */}
                     </div>
                     {w.display && (
                       <div

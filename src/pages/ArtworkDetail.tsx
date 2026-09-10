@@ -29,7 +29,7 @@ export default function ArtworkDetail() {
     ['Year', piece.year],
     ['Place', piece.place],
     ['Availability', piece.avail],
-    ['Price', piece.price],
+    // ['Price', piece.price],
   ];
 
   const step = (delta: number) => setShot((s) => (s + delta + views.length) % views.length);
@@ -238,7 +238,7 @@ function ArtworkDetailSkeleton() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(244,235,225,0.12)' }}>
-            {[0, 1, 2, 3, 4, 5].map((i) => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} style={{ padding: '14px 2px', background: theme.ink }}>
                 <SkeletonLine width={`${40 + (i % 3) * 10}%`} height={13} />
               </div>

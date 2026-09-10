@@ -91,7 +91,7 @@ export default function Artwork() {
             </div>
             <div style={{ fontSize: 14, color: text.softer, marginTop: 6 }}>
               {a.medium} · {a.size} · {a.year}
-              {a.price !== '—' ? ` · ${a.price}` : ''}
+              {/* {a.price !== '—' ? ` · ${a.price}` : ''} */}
             </div>
             {a.display && (
               <div
