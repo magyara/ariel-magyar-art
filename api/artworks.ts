@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import  { neon } from '@neondatabase/serverless';
-import { loadArtworkRow } from './_lib/artwork.js';
-import type { Artwork } from '../src/types.js';
+import { loadArtworksBatch } from './_lib/artwork.js';
 
 const dbUrl = process.env.DATABASE_URL
 
@@ -16,30 +15,37 @@ export default async function handler(
     res: VercelResponse
 ) {
     try {
-        
+
         if (req.method !== 'GET') {
             return res.status(405).json({ error: 'Method not allowed' });
         }
 
-        const artworksResult = await sql`
-            SELECT 
-                id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story 
-            FROM 
-                artworks 
-            ORDER BY 
-                id
-        `;
-        
-        const artworks: Artwork[] = [];
+        res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 
+        const featuredOnly = req.query.featured === 'true';
 
-        for (const row of artworksResult){
+        const artworksResult = featuredOnly
+            ? await sql`
+                SELECT
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                FROM
+                    artworks
+                WHERE
+                    featured = true
+                ORDER BY
+                    id
+            `
+            : await sql`
+                SELECT
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                FROM
+                    artworks
+                ORDER BY
+                    id
+            `;
 
-            const artwork: Artwork = await loadArtworkRow(row);
+        const artworks = await loadArtworksBatch(artworksResult);
 
-            artworks.push(artwork);
-        }
-        
         return res.status(200).json({ artworks });
     
     } catch (error) {

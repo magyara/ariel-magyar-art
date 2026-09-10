@@ -40,8 +40,7 @@ function InstagramMark() {
 
 export default function Home() {
   const narrow = useNarrow();
-  const { data: ARTWORKS, loading, error } = useArtworks();
-  const featured = ARTWORKS.filter((a) => a.featured);
+  const { data: featured, loading, error } = useArtworks({ featured: true });
   const [igPosts, setIgPosts] = useState<InstagramPost[]>([]);
 
   useReveal([loading]);
