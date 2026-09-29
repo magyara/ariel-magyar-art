@@ -14,8 +14,6 @@ import {
   eyebrow,
   solidButton,
   underlineLink,
-  placeholderTile,
-  placeholderLabel,
 } from '../theme';
 
 const instagramButton = {
@@ -321,41 +319,37 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Instagram */}
-      <div style={{ padding: `0 ${theme.pageX} clamp(70px,11vw,130px)`, maxWidth: 1280, margin: '0 auto' }}>
-        <div style={{ marginBottom: 28 }}>
-          <h2 style={{ fontFamily: theme.serif, fontWeight: 300, fontSize: 32, margin: 0 }}>
-            <a href={SITE.instagram} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-              {SITE.instagramHandle}
-            </a>
-          </h2>
+      {/* Instagram — hidden entirely when the feed is unavailable or empty. */}
+      {igPosts.length > 0 && (
+        <div style={{ padding: `0 ${theme.pageX} clamp(70px,11vw,130px)`, maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ marginBottom: 28 }}>
+            <h2 style={{ fontFamily: theme.serif, fontWeight: 300, fontSize: 32, margin: 0 }}>
+              <a href={SITE.instagram} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                {SITE.instagramHandle}
+              </a>
+            </h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+            {igPosts.map((post) => (
+              <a
+                key={post.id}
+                href={post.permalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={post.caption ? post.caption.slice(0, 140) : 'View on Instagram'}
+                style={{ display: 'block', aspectRatio: '1', overflow: 'hidden' }}
+              >
+                <img
+                  src={post.imageUrl}
+                  alt={post.caption ? post.caption.slice(0, 140) : 'Instagram post'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  loading="lazy"
+                />
+              </a>
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
-          {igPosts.length > 0
-            ? igPosts.map((post) => (
-                <a
-                  key={post.id}
-                  href={post.permalink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={post.caption ? post.caption.slice(0, 140) : 'View on Instagram'}
-                  style={{ display: 'block', aspectRatio: '1', overflow: 'hidden' }}
-                >
-                  <img
-                    src={post.imageUrl}
-                    alt={post.caption ? post.caption.slice(0, 140) : 'Instagram post'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    loading="lazy"
-                  />
-                </a>
-              ))
-            : ['IG 01', 'IG 02', 'IG 03', 'IG 04', 'IG 05'].map((slot) => (
-                <div key={slot} style={{ ...placeholderTile, aspectRatio: '1', padding: 12 }}>
-                  <span style={placeholderLabel}>{slot}</span>
-                </div>
-              ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }
