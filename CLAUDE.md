@@ -17,7 +17,7 @@ npm run typecheck         # checks BOTH tsconfigs: src and api
 npm run preview           # serve the built dist/
 ```
 
-There is no test suite and no linter. `npm run typecheck` is the verification gate — run it after any change, since `tsconfig.json` sets `noUnusedLocals`/`noUnusedParameters` and an unused import will fail the production build.
+There is no test suite and no linter; CI (`.github/workflows/ci.yml`) runs `typecheck` + `build` on PRs, and `smoke.yml` hits the API on each Vercel Preview deploy. `npm run typecheck` is the verification gate — run it after any change, since `tsconfig.json` sets `noUnusedLocals`/`noUnusedParameters` and an unused import will fail the production build.
 
 `vercel dev` needs `.env` populated. `GET /api/health` is a no-DB smoke test that the functions are running.
 
