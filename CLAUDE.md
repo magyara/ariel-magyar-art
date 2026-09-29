@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Portfolio site for Arlington, VA artist Ariel Magyar. React 18 + TypeScript SPA built with Vite, served with TypeScript serverless functions under `/api` on Vercel (Node 20). Artwork data lives in a Lakebase/Neon Postgres database; contact email goes through Resend.
+Portfolio site for Arlington, VA artist Ariel Magyar. React 18 + TypeScript SPA built with Vite, served with TypeScript serverless functions under `/api` on Vercel (Node 24). Artwork data lives in a Lakebase/Neon Postgres database; contact email goes through Resend.
 
 ## Commands
 

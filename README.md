@@ -3,7 +3,7 @@
 Portfolio site for Arlington, VA artist Ariel Magyar.
 
 - **Frontend** — React 18 + TypeScript, built with Vite, routed with React Router
-- **Backend** — TypeScript serverless functions on Node 20 (`/api`), Postgres on
+- **Backend** — TypeScript serverless functions on Node 24 (`/api`), Postgres on
   Neon, email via Resend
 - **Deployment** — Vercel
 
