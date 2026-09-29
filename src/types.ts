@@ -35,13 +35,3 @@ export interface InstagramPost {
   permalink: string;
   caption?: string;
 }
-
-export interface InquiryPayload {
-  kind: 'contact' | 'commission';
-  name: string;
-  email: string;
-  message: string;
-  projectType?: string;
-  timeline?: string;
-  artwork?: string;
-}

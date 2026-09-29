@@ -123,11 +123,6 @@ export default function Home() {
               <InstagramMark />
               Follow on Instagram
             </a>
-            {/* Commissions not open yet — hidden along with the /commissions route.
-            <Link to="/commissions" style={ghostButton}>
-              Commission a Piece
-            </Link>
-            */}
           </div>
         </div>
       </div>

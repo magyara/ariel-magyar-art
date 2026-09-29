@@ -182,14 +182,6 @@ export default function ArtworkDetail() {
             ))}
           </div>
 
-          {/* Inquiries not open yet — hidden along with the /contact route.
-          <Link
-            to={`/contact?piece=${encodeURIComponent(piece.title)}`}
-            style={{ ...solidButton, display: 'block', width: '100%', textAlign: 'center' }}
-          >
-            Inquire about this piece
-          </Link>
-          */}
         </div>
       </div>
     </div>
