@@ -38,6 +38,11 @@ npm run build               # tsc -b && vite build
 There is no test suite. `npm run typecheck` is the gate — unused imports and
 variables fail the build, so run it before pushing.
 
+GitHub Actions runs the same two commands on every PR and on pushes to `dev`
+and `main` (`.github/workflows/ci.yml`). After Vercel finishes a Preview
+deploy, `smoke.yml` checks `/api/health`, `/api/artworks?featured=true`, and
+`/` on the live URL. Dependabot opens monthly dependency PRs against `dev`.
+
 ## Deploy
 
 ```bash

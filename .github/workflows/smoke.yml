@@ -1,0 +1,37 @@
+name: Smoke test
+
+# Vercel reports each deployment back to GitHub; when a Preview finishes
+# building, hit the live URL to prove the functions, database, and SPA work.
+on:
+  deployment_status:
+
+jobs:
+  smoke:
+    name: Smoke test preview
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      startsWith(github.event.deployment_status.environment, 'Preview')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: ${{ github.event.deployment_status.environment_url }}
+      # Vercel → Settings → Deployment Protection → Protection Bypass for Automation.
+      BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+    steps:
+      - name: Check endpoints
+        run: |
+          set -euo pipefail
+          echo "Testing $BASE_URL"
+
+          get() {
+            curl -sS --fail-with-body --retry 3 --retry-all-errors --max-time 30 \
+              ${BYPASS:+-H "x-vercel-protection-bypass: $BYPASS"} "$BASE_URL$1"
+          }
+
+          get /api/health | jq -e '.ok == true'
+
+          count=$(get '/api/artworks?featured=true' | jq '.artworks | length')
+          echo "featured artworks: $count"
+          [ "$count" -gt 0 ]
+
+          get / | grep -qi '<div id="root"'
