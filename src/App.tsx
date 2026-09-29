@@ -7,10 +7,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Artwork from './pages/Artwork';
 import ArtworkDetail from './pages/ArtworkDetail';
-// Commissions and Contact are temporarily unrouted — not ready to accept inquiries yet.
-// import Commissions from './pages/Commissions';
 import About from './pages/About';
-// import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
 import { theme } from './theme';
 
@@ -66,9 +63,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/artwork" element={<Artwork />} />
           <Route path="/artwork/:id" element={<ArtworkDetail />} />
-          {/* <Route path="/commissions" element={<Commissions />} /> */}
           <Route path="/about" element={<About />} />
-          {/* <Route path="/contact" element={<Contact />} /> */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
