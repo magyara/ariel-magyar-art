@@ -57,6 +57,16 @@ Responsive layout is done in JS, not media queries: `useNarrow()` from `src/hook
 
 Artwork images are served from `public/images/` (the DB stores the URL) and are cached immutably for a year by `vercel.json`, so **changed artwork needs a new filename**, not an overwrite.
 
+## Admin CMS
+
+`/admin` is a lazy-loaded section of the SPA (`src/pages/admin/`, rendered without Header/Footer/analytics in `App.tsx`). All `/api/admin/*` requests hit the single function `api/admin.ts` through a `vercel.json` rewrite that passes the path as `?route=` — keep it one function (Vercel Hobby limits function count) and keep that rewrite above the generic `/api/(.*)` one.
+
+- Auth: Google Identity Services ID token → `verifyGoogleCredential` (`api/_lib/session.ts`, `jose` against Google's JWKS, `GOOGLE_CLIENT_ID` audience, `ADMIN_EMAILS` allowlist) → HMAC-signed `am_admin` cookie scoped to `/api/admin`. Every route except `session`/`login`/`logout` requires it; mutations must be JSON.
+- Writes go through `api/_lib/adminArtworks.ts`, which uses Neon's WebSocket `Pool` for real transactions (the HTTP `sql` driver can't do interactive ones). No FK cascades exist, so deletes remove `artwork_categories` and `images` first. Categories are matched case-insensitively.
+- Databases: Production uses the Neon `main` branch; local dev and Previews use a `development` branch copied from it. Because branches share Blob URLs with production, `deleteBlobs` only deletes files when `VERCEL_ENV === 'production'`.
+- Images: `IMAGE_SLOTS` in `src/types.ts` (`Full view`, `Detail` required; `Framed`, `Context` optional) are stored as `images.label`, with `position` = slot order. Saving only replaces slot-labelled rows, so hand-entered images with other labels survive. Uploads go browser → Vercel Blob (`handleUpload` signs, `addRandomSuffix`); only `*.blob.vercel-storage.com` files are ever deleted.
+- Admin types (`AdminArtworkInput` etc.) live in `src/types.ts`; the zod schema in `api/_lib/adminSchema.ts` must stay in sync with them.
+
 ## Paused features
 
 Contact and Commissions pages, the `/api/inquiry` endpoint, and Resend email were removed while the artist isn't taking inquiries; restore them from git history when needed. Price display is commented out in the artwork pages.

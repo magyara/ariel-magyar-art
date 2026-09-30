@@ -27,6 +27,8 @@ so `vercel dev` is the way to exercise anything under `/api`.
 | `DATABASE_URL_UNPOOLED` | Direct connection, for migrations and schema work |
 | `NEON_BRANCH` | Which Neon branch your `.env` points at. Not read by the app. |
 | `IG_ACCESS_TOKEN` | Long-lived Instagram token for the homepage feed. Optional — without it the homepage hides its Instagram section. |
+| `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET` | Google sign-in for `/admin` and the allowed accounts |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store for photos uploaded through `/admin` |
 
 ## Checks
 
@@ -59,11 +61,15 @@ records Vercel shows you at your registrar.
 
 ## Adding artwork
 
-Artwork lives in the Neon database, not in the codebase. To add a piece: upload
-the photography to `public/images/` (use a new filename — images are cached for
-a year, so overwriting one will not take effect), then insert the row into
-`artworks` plus its `images`, `artwork_categories`, and optional `displays`
-rows.
+Sign in at `/admin` with an allowed Google account (`ADMIN_EMAILS`) to add,
+edit, or delete pieces. Each piece has four photo slots — **Full view** and
+**Detail** (required), **Framed** and **Context** (optional). Photos are resized
+in the browser to 2400px JPEG, keep their original shape, and upload to Vercel
+Blob; changes show on the site within a few minutes (the public API caches for
+60 seconds).
+
+Older pieces' photos stay in `public/images/`. The admin only deletes Blob
+files, never those.
 
 ## Structure
 
@@ -74,6 +80,10 @@ api/
   categories.ts         GET  — category names
   instagram.ts          GET  — cached Instagram feed
   health.ts             GET  — config smoke test
+  admin.ts              /api/admin/* (via vercel.json rewrite): sign-in, uploads, artwork CRUD
+  _lib/session.ts       Google ID-token check + signed session cookie
+  _lib/adminArtworks.ts admin reads and transactional writes
+  _lib/adminSchema.ts   zod validation for the artwork form
   _lib/artwork.ts       DB rows → Artwork objects; batch + single loaders
 src/
   App.tsx               routes + page chrome
@@ -81,6 +91,8 @@ src/
   types.ts              shared TypeScript types — also imported by api/
   data/artworks.ts      SITE constants (handle, email, name)
   lib/api.ts            Instagram feed fetch
+  lib/adminApi.ts       admin API calls + Blob upload
+  lib/imagePrep.ts      in-browser resize to JPEG
   components/
     Header.tsx          sticky nav, collapses to a hamburger under 760px
     Footer.tsx
@@ -93,5 +105,6 @@ src/
     useReveal.ts        scroll-in fade via IntersectionObserver
     useMediaQuery.ts
   pages/                Home, Artwork, ArtworkDetail, About, NotFound
+  pages/admin/          /admin — lazy-loaded, no public header/footer
 public/images/          artwork photography and process shots
 ```
