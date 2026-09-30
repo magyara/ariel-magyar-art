@@ -5,8 +5,16 @@ updates:
     target-branch: dev
     schedule:
       interval: monthly
+    ignore:
+      # Types must match the Node runtime in .nvmrc — bump by hand with Node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
-      # One PR for all minor/patch bumps; majors still come individually.
+      # react and react-dom must move together or npm ci fails on peer deps.
+      # Listed first so it wins over minor-and-patch.
+      react:
+        patterns: [react, react-dom, "@types/react", "@types/react-dom"]
+      # One PR for all other minor/patch bumps; majors still come individually.
       minor-and-patch:
         update-types: [minor, patch]
 
