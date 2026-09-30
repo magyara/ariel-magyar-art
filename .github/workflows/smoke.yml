@@ -35,3 +35,10 @@ jobs:
           [ "$count" -gt 0 ]
 
           get / | grep -qi '<div id="root"'
+
+          # Admin API must refuse requests without a session cookie.
+          get /api/admin/session | jq -e '.authenticated == false'
+          status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            ${BYPASS:+-H "x-vercel-protection-bypass: $BYPASS"} "$BASE_URL/api/admin/artworks")
+          echo "unauthenticated /api/admin/artworks: $status"
+          [ "$status" = 401 ]

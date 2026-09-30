@@ -76,4 +76,4 @@ export const placeholderLabel: CSSProperties = {
 };
 
 export const availColor = (avail: string) =>
-  avail === 'Sold' || avail === 'Unavailable' ? text.faint : theme.brass;
+  avail === 'Unavailable' ? text.faint : theme.brass;

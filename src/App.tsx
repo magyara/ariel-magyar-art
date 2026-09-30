@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -11,6 +11,9 @@ import About from './pages/About';
 import NotFound from './pages/NotFound';
 import { theme } from './theme';
 
+// Admin code is split into its own chunk so visitors never download it.
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -19,18 +22,32 @@ function ScrollToTop() {
   return null;
 }
 
+const shell = {
+  background: theme.ink,
+  color: theme.paper,
+  fontFamily: theme.sans,
+  fontWeight: 300,
+  minHeight: '100vh',
+  overflowX: 'clip',
+} as const;
+
 export default function App() {
+  const { pathname } = useLocation();
+
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    return (
+      <div style={shell}>
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/admin/*" element={<AdminApp />} />
+          </Routes>
+        </Suspense>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        background: theme.ink,
-        color: theme.paper,
-        fontFamily: theme.sans,
-        fontWeight: 300,
-        minHeight: '100vh',
-        overflowX: 'clip',
-      }}
-    >
+    <div style={shell}>
       <ScrollToTop />
       <a
         href="#main"
