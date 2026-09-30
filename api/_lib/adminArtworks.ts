@@ -31,6 +31,12 @@ function isBlobUrl(url: string): boolean {
 async function deleteBlobs(urls: string[]): Promise<void> {
     const blobs = urls.filter(isBlobUrl);
     if (blobs.length === 0) return;
+    // Dev/preview databases are branched from production, so their rows can
+    // point at the same files the live site uses. Only production deletes.
+    if (process.env.VERCEL_ENV !== 'production') {
+        console.info(`skipping delete of ${blobs.length} blob(s) outside production`);
+        return;
+    }
     try {
         await del(blobs);
     } catch (err) {
