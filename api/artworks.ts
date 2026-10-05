@@ -27,7 +27,7 @@ export default async function handler(
         const artworksResult = featuredOnly
             ? await sql`
                 SELECT
-                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, story
                 FROM
                     artworks
                 WHERE
@@ -37,11 +37,11 @@ export default async function handler(
             `
             : await sql`
                 SELECT
-                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story
+                    id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, story
                 FROM
                     artworks
                 ORDER BY
-                    id
+                    added_on DESC, id DESC
             `;
 
         const artworks = await loadArtworksBatch(artworksResult);

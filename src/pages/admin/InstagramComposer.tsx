@@ -44,14 +44,14 @@ export interface CaptionDetails {
   medium: string;
   width: string;
   height: string;
-  year: string;
   story: string;
 }
 
 export function buildCaption(d: CaptionDetails, hashtags: string): string {
   const size = d.width && d.height ? `${d.width} × ${d.height} in` : '';
-  const facts = [d.medium, size, d.year].filter(Boolean).join(' · ');
-  return [d.title, facts, d.story.trim(), hashtags.trim()].filter(Boolean).join('\n\n');
+  const title = d.title.trim() ? `“${d.title.trim()}”` : '';
+  const facts = [d.medium, size].filter(Boolean).join(' · ');
+  return [title, facts, d.story.trim(), hashtags.trim()].filter(Boolean).join('\n\n');
 }
 
 export const countHashtags = (value: string) => (value.match(/#[\p{L}\p{N}_]+/gu) ?? []).length;

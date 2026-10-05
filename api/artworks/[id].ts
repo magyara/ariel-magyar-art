@@ -26,7 +26,7 @@ export default async function handler(
 
         const artworksResult = await sql`
             SELECT 
-                id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, display_id, story 
+                id, title, place, medium, width, height, year, price_dollars, price_cents, featured, availability, story 
             FROM 
                 artworks 
             WHERE

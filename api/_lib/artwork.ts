@@ -1,14 +1,19 @@
 import { neon } from '@neondatabase/serverless';
-import type { Artwork, ArtworkImage } from '../../src/types.js';
+import type { Artwork, ArtworkImage, Availability, ExhibitionRecord } from '../../src/types.js';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-function buildArtwork(row: any, categoryNames: string[], images: ArtworkImage[], displayRow: any): Artwork {
-    const display = displayRow ? {
-        venue: String(displayRow.venue),
-        city: String(displayRow.city),
-        dates: formatDate(displayRow.start_date, displayRow.end_date)
+function buildArtwork(row: any, categoryNames: string[], images: ArtworkImage[], currentShow: any): Artwork {
+    const display = currentShow ? {
+        venue: String(currentShow.venue),
+        city: String(currentShow.city),
+        dates: formatDate(currentShow.start_date, currentShow.end_date)
     } : undefined;
+
+    // "On view" comes from show dates rather than a stored status, so it ends by
+    // itself the day after a show closes. Unavailable (sold/gifted) always wins.
+    const avail: Availability =
+        row.availability === 'Unavailable' ? 'Unavailable' : currentShow ? 'On Display' : 'Available';
 
     return {
         id: String(row.id),
@@ -18,7 +23,7 @@ function buildArtwork(row: any, categoryNames: string[], images: ArtworkImage[],
         medium: row.medium,
         size: formatSize(row.width, row.height),
         year: String(row.year),
-        avail: row.availability,
+        avail,
         price: formatPrice(row.price_dollars, row.price_cents),
         featured: row.featured,
         images: images,
@@ -27,59 +32,48 @@ function buildArtwork(row: any, categoryNames: string[], images: ArtworkImage[],
     };
 }
 
+/** Single artwork, plus its full exhibition history for the detail page. */
 export async function loadArtworkRow(row: any): Promise<Artwork> {
-
-    const [categoryResult, imageResult, displayResult] = await Promise.all([
+    const [[artwork], history] = await Promise.all([
+        loadArtworksBatch([row]),
         sql`
+            WITH today AS (SELECT (now() AT TIME ZONE 'America/New_York')::date AS d)
             SELECT
-                c.name
+                d.venue, d.city, d.start_date, d.end_date,
+                CASE
+                    WHEN d.end_date < today.d THEN 'past'
+                    WHEN d.start_date > today.d THEN 'upcoming'
+                    ELSE 'current'
+                END AS timing
             FROM
-                categories c
+                artwork_displays ad
             INNER JOIN
-                artwork_categories ac ON c.id = ac.category_id
+                displays d ON d.id = ad.display_id
+            CROSS JOIN
+                today
             WHERE
-                ac.artwork_id = ${row.id}
-        `,
-        sql`
-            SELECT
-                url, label, position
-            FROM
-                images
-            WHERE
-                artwork_id = ${row.id}
+                ad.artwork_id = ${row.id}
             ORDER BY
-                position
+                d.start_date DESC
         `,
-        row.display_id
-            ? sql`
-                SELECT
-                    venue, city, start_date, end_date
-                FROM
-                    displays
-                WHERE
-                    id = ${row.display_id}
-            `
-            : Promise.resolve([]),
     ]);
 
-    const categoryNames = categoryResult.map((row: any) => row.name);
-
-    const images: ArtworkImage[] = imageResult.map((row: any) => ({
-        img: row.url,
-        label: row.label,
-        pos: row.position
+    const exhibitions: ExhibitionRecord[] = history.map((h: any) => ({
+        venue: String(h.venue),
+        city: String(h.city),
+        dates: formatDate(h.start_date, h.end_date),
+        timing: h.timing,
     }));
 
-    return buildArtwork(row, categoryNames, images, displayResult[0]);
+    return { ...artwork, exhibitions };
 }
 
 export async function loadArtworksBatch(rows: any[]): Promise<Artwork[]> {
     if (rows.length === 0) return [];
 
     const ids = rows.map((row) => row.id);
-    const displayIds = [...new Set(rows.map((row) => row.display_id).filter((id) => id != null))];
 
-    const [categoryRows, imageRows, displayRows] = await Promise.all([
+    const [categoryRows, imageRows, showRows] = await Promise.all([
         sql`
             SELECT
                 ac.artwork_id, c.name
@@ -100,16 +94,21 @@ export async function loadArtworksBatch(rows: any[]): Promise<Artwork[]> {
             ORDER BY
                 artwork_id, position
         `,
-        displayIds.length
-            ? sql`
-                SELECT
-                    id, venue, city, start_date, end_date
-                FROM
-                    displays
-                WHERE
-                    id = ANY(${displayIds})
-            `
-            : Promise.resolve([]),
+        // Only shows running today (Eastern time, so a piece stays on view through
+        // the whole last day); past ones stay in artwork_displays as history.
+        sql`
+            SELECT DISTINCT ON (ad.artwork_id)
+                ad.artwork_id, d.venue, d.city, d.start_date, d.end_date
+            FROM
+                artwork_displays ad
+            INNER JOIN
+                displays d ON d.id = ad.display_id
+            WHERE
+                ad.artwork_id = ANY(${ids})
+                AND (now() AT TIME ZONE 'America/New_York')::date BETWEEN d.start_date AND d.end_date
+            ORDER BY
+                ad.artwork_id, d.end_date
+        `,
     ]);
 
     const categoriesByArtwork = new Map<number, string[]>();
@@ -126,16 +125,16 @@ export async function loadArtworksBatch(rows: any[]): Promise<Artwork[]> {
         imagesByArtwork.set(row.artwork_id, list);
     }
 
-    const displayById = new Map<number, any>();
-    for (const row of displayRows as any[]) {
-        displayById.set(row.id, row);
+    const showByArtwork = new Map<number, any>();
+    for (const row of showRows as any[]) {
+        showByArtwork.set(row.artwork_id, row);
     }
 
     return rows.map((row) => buildArtwork(
         row,
         categoriesByArtwork.get(row.id) ?? [],
         imagesByArtwork.get(row.id) ?? [],
-        row.display_id ? displayById.get(row.display_id) : undefined,
+        showByArtwork.get(row.id),
     ));
 }
 

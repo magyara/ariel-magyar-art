@@ -20,11 +20,12 @@ import type {
   AdminArtwork,
   AdminArtworkInput,
   AdminOptions,
-  Availability,
+  AdminDisplay,
   IgSlide,
   IgStatus,
   ImageSlot,
   NewDisplayInput,
+  StoredAvailability,
 } from '../../types';
 import InstagramComposer, {
   buildCaption,
@@ -66,15 +67,15 @@ interface Fields {
   width: string;
   height: string;
   year: string;
-  availability: Availability;
+  addedOn: string;
+  availability: StoredAvailability;
   priceDollars: string;
   priceCents: string;
   featured: boolean;
   story: string;
   categories: string[];
-  displayMode: 'none' | 'existing' | 'new';
-  displayId: string;
-  newDisplay: NewDisplayInput;
+  /** Shows this piece is linked to: existing ones by id, new ones created on save. */
+  displays: Array<{ id: number } | NewDisplayInput>;
 }
 
 const emptySlots = (): Slots =>
@@ -87,15 +88,14 @@ const blankFields = (): Fields => ({
   width: '',
   height: '',
   year: String(new Date().getFullYear()),
+  addedOn: todayIso(),
   availability: 'Available',
   priceDollars: '',
   priceCents: '',
   featured: false,
   story: '',
   categories: [],
-  displayMode: 'none',
-  displayId: '',
-  newDisplay: { venue: '', city: '', startDate: '', endDate: '' },
+  displays: [],
 });
 
 function fieldsFrom(a: AdminArtwork): Fields {
@@ -107,18 +107,30 @@ function fieldsFrom(a: AdminArtwork): Fields {
     width: String(a.width),
     height: String(a.height),
     year: String(a.year),
+    addedOn: a.addedOn,
     availability: a.availability,
     priceDollars: a.priceDollars == null ? '' : String(a.priceDollars),
     priceCents: a.priceCents == null ? '' : String(a.priceCents),
     featured: a.featured,
     story: a.story,
     categories: a.categories,
-    displayMode: a.display ? 'existing' : 'none',
-    displayId: a.display && 'id' in a.display ? String(a.display.id) : '',
+    displays: a.displays,
   };
 }
 
 const numberOrNull = (v: string) => (v.trim() === '' ? null : Number(v));
+
+/** Local date as YYYY-MM-DD. */
+function todayIso(): string {
+  return new Date().toLocaleDateString('en-CA');
+}
+
+const emptyDisplay = (): NewDisplayInput => ({ venue: '', city: '', startDate: '', endDate: '' });
+
+function showTiming(d: NewDisplayInput): 'Past' | 'Current' | 'Upcoming' {
+  const today = todayIso();
+  return d.endDate < today ? 'Past' : d.startDate > today ? 'Upcoming' : 'Current';
+}
 
 export default function ArtworkForm() {
   const { id: idParam } = useParams();
@@ -241,13 +253,6 @@ export default function ArtworkForm() {
         }
       }
 
-      const display: AdminArtworkInput['display'] =
-        fields.displayMode === 'existing' && fields.displayId
-          ? { id: Number(fields.displayId) }
-          : fields.displayMode === 'new'
-            ? fields.newDisplay
-            : null;
-
       const payload: AdminArtworkInput = {
         title: fields.title,
         place: fields.place,
@@ -255,13 +260,14 @@ export default function ArtworkForm() {
         width: Number(fields.width),
         height: Number(fields.height),
         year: Number(fields.year),
+        addedOn: fields.addedOn,
         availability: fields.availability,
         priceDollars: numberOrNull(fields.priceDollars),
         priceCents: numberOrNull(fields.priceCents),
         featured: fields.featured,
         story: fields.story,
         categories: fields.categories,
-        display,
+        displays: fields.displays,
         images,
       };
 
@@ -410,9 +416,14 @@ export default function ArtworkForm() {
             <input style={input} required type="number" min="0" step="any" inputMode="decimal" value={fields.height} onChange={(e) => set('height', e.target.value)} />
           </Field>
         </div>
-        <Field label="Year">
-          <input style={input} required type="number" min="1900" max="2100" inputMode="numeric" value={fields.year} onChange={(e) => set('year', e.target.value)} />
-        </Field>
+        <div style={{ display: 'flex', gap: 20 }}>
+          <Field label="Year made">
+            <input style={input} required type="number" min="1900" max="2100" inputMode="numeric" value={fields.year} onChange={(e) => set('year', e.target.value)} />
+          </Field>
+          <Field label="Date added">
+            <input style={{ ...input, colorScheme: 'dark' }} required type="date" value={fields.addedOn} onChange={(e) => set('addedOn', e.target.value)} />
+          </Field>
+        </div>
         <Field label="Story" full>
           <textarea
             style={{ ...input, resize: 'vertical', lineHeight: 1.6 }}
@@ -464,9 +475,10 @@ export default function ArtworkForm() {
       <h2 style={sectionTitle}>Availability</h2>
       <div style={grid}>
         <Field label="Status">
-          <select style={select} value={fields.availability} onChange={(e) => set('availability', e.target.value as Availability)}>
+          <select style={select} value={fields.availability} onChange={(e) => set('availability', e.target.value as StoredAvailability)}>
             {options.availability.map((a) => <option key={a}>{a}</option>)}
           </select>
+          <span style={{ ...hint, fontSize: 12 }}>“On view” is shown automatically while one of its exhibitions is running.</span>
         </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 16, cursor: 'pointer', alignSelf: 'end', paddingBottom: 10 }}>
           <input type="checkbox" checked={fields.featured} onChange={(e) => set('featured', e.target.checked)} style={{ width: 18, height: 18 }} />
@@ -483,45 +495,12 @@ export default function ArtworkForm() {
         <p style={{ ...hint, alignSelf: 'end' }}>Prices are saved but currently hidden on the site.</p>
       </div>
 
-      <h2 style={sectionTitle}>Exhibition</h2>
-      <div style={grid}>
-        <Field label="Shown at">
-          <select
-            style={select}
-            value={fields.displayMode === 'existing' ? fields.displayId : fields.displayMode}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === 'none' || v === 'new') setFields((f) => ({ ...f, displayMode: v, displayId: '' }));
-              else setFields((f) => ({ ...f, displayMode: 'existing', displayId: v }));
-            }}
-          >
-            <option value="none">Not on display</option>
-            {options.displays.map((d) => (
-              <option key={d.id} value={String(d.id)}>
-                {d.venue}, {d.city} ({d.startDate} – {d.endDate})
-              </option>
-            ))}
-            <option value="new">New exhibition…</option>
-          </select>
-        </Field>
-        <div />
-        {fields.displayMode === 'new' && (
-          <>
-            <Field label="Venue">
-              <input style={input} required value={fields.newDisplay.venue} onChange={(e) => set('newDisplay', { ...fields.newDisplay, venue: e.target.value })} />
-            </Field>
-            <Field label="City">
-              <input style={input} required value={fields.newDisplay.city} onChange={(e) => set('newDisplay', { ...fields.newDisplay, city: e.target.value })} />
-            </Field>
-            <Field label="Start date">
-              <input style={{ ...input, colorScheme: 'dark' }} required type="date" value={fields.newDisplay.startDate} onChange={(e) => set('newDisplay', { ...fields.newDisplay, startDate: e.target.value })} />
-            </Field>
-            <Field label="End date">
-              <input style={{ ...input, colorScheme: 'dark' }} required type="date" value={fields.newDisplay.endDate} onChange={(e) => set('newDisplay', { ...fields.newDisplay, endDate: e.target.value })} />
-            </Field>
-          </>
-        )}
-      </div>
+      <h2 style={sectionTitle}>Exhibitions</h2>
+      <ExhibitionsEditor
+        linked={fields.displays}
+        existing={options.displays}
+        onChange={(displays) => set('displays', displays)}
+      />
 
       <h2 style={sectionTitle}>Instagram</h2>
       <InstagramComposer
@@ -644,6 +623,132 @@ function ImageSlotInput({ slot, required, state, disabled, onChoose, onRemove }:
         </div>
       )}
       {state.file && <span style={{ ...hint, fontSize: 12 }}>New — uploads on save</span>}
+    </div>
+  );
+}
+
+interface ExhibitionsEditorProps {
+  linked: Array<{ id: number } | NewDisplayInput>;
+  existing: AdminDisplay[];
+  onChange: (next: Array<{ id: number } | NewDisplayInput>) => void;
+}
+
+/**
+ * Every show the piece has been in. Past shows stay linked as a record; the
+ * site only says "On view" while one of them is running.
+ */
+function ExhibitionsEditor({ linked, existing, onChange }: ExhibitionsEditorProps) {
+  const [adding, setAdding] = useState<NewDisplayInput | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const details = (d: { id: number } | NewDisplayInput): NewDisplayInput | undefined =>
+    'id' in d ? existing.find((e) => e.id === d.id) : d;
+  const linkedIds = new Set(linked.flatMap((d) => ('id' in d ? [d.id] : [])));
+  const available = existing.filter((d) => !linkedIds.has(d.id));
+
+  const sorted = [...linked].sort((a, b) => (details(b)?.startDate ?? '').localeCompare(details(a)?.startDate ?? ''));
+
+  const addNew = () => {
+    if (!adding) return;
+    const problem =
+      !adding.venue.trim() || !adding.city.trim() || !adding.startDate || !adding.endDate
+        ? 'Fill in venue, city, and both dates.'
+        : adding.endDate < adding.startDate
+          ? 'The end date is before the start date.'
+          : null;
+    if (problem) {
+      setAddError(problem);
+      return;
+    }
+    onChange([...linked, { ...adding, venue: adding.venue.trim(), city: adding.city.trim() }]);
+    setAdding(null);
+    setAddError(null);
+  };
+
+  const timingColor = { Past: text.faint, Current: theme.brass, Upcoming: text.soft } as const;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <p style={{ ...hint, margin: '-6px 0 0' }}>
+        The site shows “On view” only while one of these is running. Past shows stay here as a record.
+      </p>
+
+      {sorted.length > 0 && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {sorted.map((d) => {
+            const info = details(d);
+            if (!info) return null;
+            const timing = showTiming(info);
+            return (
+              <li
+                key={'id' in d ? `id-${d.id}` : `new-${info.venue}-${info.startDate}`}
+                style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 16px', padding: '12px 0', borderBottom: `1px solid ${theme.rule}` }}
+              >
+                <span style={{ fontSize: 16, flex: 1, minWidth: 200 }}>
+                  {info.venue}, {info.city}
+                  <span style={{ color: text.faint, fontSize: 14 }}> · {info.startDate} – {info.endDate}</span>
+                </span>
+                <span style={{ ...caption, color: timingColor[timing] }}>
+                  {'id' in d ? timing : `New · ${timing}`}
+                </span>
+                <button type="button" style={smallButton} onClick={() => onChange(linked.filter((x) => x !== d))}>
+                  Remove
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', maxWidth: 560 }}>
+        <Field label="Add to an exhibition">
+          <select
+            style={select}
+            value=""
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === 'new') setAdding(emptyDisplay());
+              else if (v) onChange([...linked, { id: Number(v) }]);
+            }}
+          >
+            <option value="">Choose…</option>
+            {available.map((d) => (
+              <option key={d.id} value={String(d.id)}>
+                {d.venue}, {d.city} ({d.startDate} – {d.endDate})
+              </option>
+            ))}
+            <option value="new">New exhibition…</option>
+          </select>
+        </Field>
+      </div>
+
+      {adding && (
+        <div style={{ border: theme.border, padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px 28px' }}>
+            <Field label="Venue">
+              <input style={input} value={adding.venue} onChange={(e) => setAdding({ ...adding, venue: e.target.value })} />
+            </Field>
+            <Field label="City">
+              <input style={input} value={adding.city} onChange={(e) => setAdding({ ...adding, city: e.target.value })} />
+            </Field>
+            <Field label="Start date">
+              <input style={{ ...input, colorScheme: 'dark' }} type="date" value={adding.startDate} onChange={(e) => setAdding({ ...adding, startDate: e.target.value })} />
+            </Field>
+            <Field label="End date">
+              <input style={{ ...input, colorScheme: 'dark' }} type="date" value={adding.endDate} onChange={(e) => setAdding({ ...adding, endDate: e.target.value })} />
+            </Field>
+          </div>
+          {addError && <span style={{ ...hint, color: '#F0B8A8' }}>{addError}</span>}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" style={{ ...smallButton, background: theme.paper, color: theme.ink }} onClick={addNew}>
+              Add exhibition
+            </button>
+            <button type="button" style={smallButton} onClick={() => { setAdding(null); setAddError(null); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

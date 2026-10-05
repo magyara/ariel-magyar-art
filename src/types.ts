@@ -13,6 +13,10 @@ export interface DisplayInfo {
   dates?: string;
 }
 
+export interface ExhibitionRecord extends DisplayInfo {
+  timing: 'past' | 'current' | 'upcoming';
+}
+
 export interface Artwork {
   id: string;
   title: string;
@@ -25,7 +29,10 @@ export interface Artwork {
   price: string;
   featured?: boolean;
   images: ArtworkImage[];
+  /** The show running today, if any — drives "On view". */
   display?: DisplayInfo;
+  /** Every show the piece has been in, newest first. Only on single-artwork responses. */
+  exhibitions?: ExhibitionRecord[];
   story: string;
 }
 
@@ -34,7 +41,12 @@ export const IMAGE_SLOTS = ['Full view', 'Detail', 'Framed', 'Context'] as const
 export type ImageSlot = (typeof IMAGE_SLOTS)[number];
 export const REQUIRED_SLOTS: readonly ImageSlot[] = ['Full view', 'Detail'];
 
-export const AVAILABILITY: readonly Availability[] = ['Available', 'On Display', 'Unavailable'];
+/**
+ * What the admin can set. "On Display" isn't stored any more — the site shows it
+ * automatically while one of the piece's shows is running.
+ */
+export type StoredAvailability = Exclude<Availability, 'On Display'>;
+export const AVAILABILITY: readonly StoredAvailability[] = ['Available', 'Unavailable'];
 
 export interface AdminImageInput {
   slot: ImageSlot;
@@ -58,14 +70,16 @@ export interface AdminArtworkInput {
   width: number;
   height: number;
   year: number;
-  availability: Availability;
+  /** YYYY-MM-DD; the public artwork page lists newest first. */
+  addedOn: string;
+  availability: StoredAvailability;
   priceDollars: number | null;
   priceCents: number | null;
   featured: boolean;
   story: string;
   categories: string[];
-  /** Existing display id, a new display to create, or none. */
-  display: { id: number } | NewDisplayInput | null;
+  /** Every show the piece has been in: existing ones by id, or new ones to create. */
+  displays: Array<{ id: number } | NewDisplayInput>;
   images: AdminImageInput[];
 }
 
@@ -77,7 +91,8 @@ export interface AdminArtworkSummary {
   id: number;
   title: string;
   year: number;
-  availability: Availability;
+  addedOn: string;
+  availability: StoredAvailability;
   featured: boolean;
   thumbUrl: string | null;
 }
@@ -87,8 +102,8 @@ export interface AdminDisplay extends NewDisplayInput {
 }
 
 export interface AdminOptions {
-  /** Values of the availability_status enum, so the form matches the DB exactly. */
-  availability: Availability[];
+  /** Settable values of the availability_status enum (everything except "On Display"). */
+  availability: StoredAvailability[];
   categories: string[];
   displays: AdminDisplay[];
 }
