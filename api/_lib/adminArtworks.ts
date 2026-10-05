@@ -70,18 +70,19 @@ async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promi
 export async function listArtworks(): Promise<AdminArtworkSummary[]> {
     const rows = await sql`
         SELECT
-            a.id, a.title, a.year, a.availability, a.featured,
+            a.id, a.title, a.year, to_char(a.added_on, 'YYYY-MM-DD') AS added_on, a.availability, a.featured,
             (SELECT url FROM images i WHERE i.artwork_id = a.id ORDER BY i.position LIMIT 1) AS thumb_url
         FROM
             artworks a
         ORDER BY
-            a.id DESC
+            a.added_on DESC, a.id DESC
     `;
     return rows.map((r: any) => ({
         id: r.id,
         title: r.title,
         year: r.year,
-        availability: r.availability,
+        addedOn: r.added_on,
+        availability: r.availability === 'Unavailable' ? 'Unavailable' : 'Available',
         featured: Boolean(r.featured),
         thumbUrl: r.thumb_url ?? null,
     }));
@@ -103,7 +104,8 @@ export async function getOptions(): Promise<AdminOptions> {
         `,
     ]);
     return {
-        availability: availability.map((r: any) => r.value),
+        // "On Display" is derived from show dates now, never set by hand.
+        availability: availability.map((r: any) => r.value).filter((v: string) => v !== 'On Display'),
         categories: categories.map((r: any) => r.name),
         displays: displays.map((r: any) => ({
             id: r.id,
@@ -116,11 +118,11 @@ export async function getOptions(): Promise<AdminOptions> {
 }
 
 export async function getArtwork(id: number): Promise<AdminArtwork | null> {
-    const [rows, categories, images] = await Promise.all([
+    const [rows, categories, images, displays] = await Promise.all([
         sql`
             SELECT
                 id, title, place, medium, width, height, year, price_dollars, price_cents,
-                featured, availability, display_id, story
+                featured, availability, story, to_char(added_on, 'YYYY-MM-DD') AS added_on
             FROM
                 artworks
             WHERE
@@ -134,6 +136,13 @@ export async function getArtwork(id: number): Promise<AdminArtwork | null> {
             ORDER BY c.name
         `,
         sql`SELECT url, label FROM images WHERE artwork_id = ${id} ORDER BY position`,
+        sql`
+            SELECT ad.display_id
+            FROM artwork_displays ad
+            INNER JOIN displays d ON d.id = ad.display_id
+            WHERE ad.artwork_id = ${id}
+            ORDER BY d.start_date DESC
+        `,
     ]);
 
     const row: any = rows[0];
@@ -153,26 +162,32 @@ export async function getArtwork(id: number): Promise<AdminArtwork | null> {
         width: Number(row.width),
         height: Number(row.height),
         year: row.year,
-        availability: row.availability,
+        addedOn: row.added_on,
+        availability: row.availability === 'Unavailable' ? 'Unavailable' : 'Available',
         priceDollars: row.price_dollars,
         priceCents: row.price_cents,
         featured: Boolean(row.featured),
         story: row.story ?? '',
         categories: categories.map((c: any) => c.name),
-        display: row.display_id ? { id: row.display_id } : null,
+        displays: displays.map((d: any) => ({ id: d.display_id })),
         images: slotted,
     };
 }
 
-async function resolveDisplayId(client: PoolClient, display: AdminArtworkInput['display']): Promise<number | null> {
-    if (!display) return null;
-    if ('id' in display) return display.id;
-
-    const { rows } = await client.query(
-        'INSERT INTO displays (venue, city, start_date, end_date) VALUES ($1, $2, $3, $4) RETURNING id',
-        [display.venue, display.city, display.startDate, display.endDate],
-    );
-    return rows[0].id;
+async function resolveDisplayIds(client: PoolClient, displays: AdminArtworkInput['displays']): Promise<number[]> {
+    const ids: number[] = [];
+    for (const display of displays) {
+        if ('id' in display) {
+            ids.push(display.id);
+            continue;
+        }
+        const { rows } = await client.query(
+            'INSERT INTO displays (venue, city, start_date, end_date) VALUES ($1, $2, $3, $4) RETURNING id',
+            [display.venue, display.city, display.startDate, display.endDate],
+        );
+        ids.push(rows[0].id);
+    }
+    return [...new Set(ids)];
 }
 
 async function resolveCategoryIds(client: PoolClient, names: string[]): Promise<number[]> {
@@ -201,6 +216,17 @@ async function resolveCategoryIds(client: PoolClient, names: string[]): Promise<
  * Returns the image URLs that were replaced or removed.
  */
 async function writeRelations(client: PoolClient, artworkId: number, input: AdminArtworkInput): Promise<string[]> {
+    // Shows are history: the full list is rewritten, and past shows stay linked
+    // unless they're removed in the form.
+    const displayIds = await resolveDisplayIds(client, input.displays);
+    await client.query('DELETE FROM artwork_displays WHERE artwork_id = $1', [artworkId]);
+    if (displayIds.length) {
+        await client.query(
+            'INSERT INTO artwork_displays (artwork_id, display_id) SELECT $1::int, unnest($2::int[])',
+            [artworkId, displayIds],
+        );
+    }
+
     const categoryIds = await resolveCategoryIds(client, input.categories);
     await client.query('DELETE FROM artwork_categories WHERE artwork_id = $1', [artworkId]);
     if (categoryIds.length) {
@@ -231,7 +257,7 @@ async function writeRelations(client: PoolClient, artworkId: number, input: Admi
     return removed.map((r: any) => r.url).filter((url: string) => !kept.has(url));
 }
 
-function artworkColumns(input: AdminArtworkInput, displayId: number | null) {
+function artworkColumns(input: AdminArtworkInput) {
     return [
         input.title,
         input.place,
@@ -243,21 +269,20 @@ function artworkColumns(input: AdminArtworkInput, displayId: number | null) {
         input.priceDollars == null ? null : input.priceCents,
         input.featured,
         input.availability,
-        displayId,
         input.story || null,
+        input.addedOn,
     ];
 }
 
 export async function createArtwork(input: AdminArtworkInput): Promise<number> {
     return withTransaction(async (client) => {
-        const displayId = await resolveDisplayId(client, input.display);
         const { rows } = await client.query(
             `INSERT INTO artworks
                 (title, place, medium, width, height, year, price_dollars, price_cents,
-                 featured, availability, display_id, story)
+                 featured, availability, story, added_on)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id`,
-            artworkColumns(input, displayId),
+            artworkColumns(input),
         );
         const id: number = rows[0].id;
         await writeRelations(client, id, input);
@@ -268,14 +293,13 @@ export async function createArtwork(input: AdminArtworkInput): Promise<number> {
 /** Returns false when no artwork has that id. */
 export async function updateArtwork(id: number, input: AdminArtworkInput): Promise<boolean> {
     const removedUrls = await withTransaction(async (client) => {
-        const displayId = await resolveDisplayId(client, input.display);
         const { rowCount } = await client.query(
             `UPDATE artworks SET
                 title = $1, place = $2, medium = $3, width = $4, height = $5, year = $6,
                 price_dollars = $7, price_cents = $8, featured = $9, availability = $10,
-                display_id = $11, story = $12
+                story = $11, added_on = $12
              WHERE id = $13`,
-            [...artworkColumns(input, displayId), id],
+            [...artworkColumns(input), id],
         );
         if (!rowCount) return null;
         return writeRelations(client, id, input);

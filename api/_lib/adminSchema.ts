@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AVAILABILITY, IMAGE_SLOTS, REQUIRED_SLOTS } from '../../src/types.js';
-import type { AdminArtworkInput, Availability } from '../../src/types.js';
+import type { AdminArtworkInput, StoredAvailability } from '../../src/types.js';
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const text = (max: number) => z.string().trim().max(max);
@@ -19,17 +19,23 @@ export const artworkInputSchema = z
         width: z.number().positive(),
         height: z.number().positive(),
         year: z.number().int().min(1900).max(2100),
-        availability: z.enum(AVAILABILITY as [Availability, ...Availability[]]),
+        addedOn: date,
+        availability: z.enum(AVAILABILITY as [StoredAvailability, ...StoredAvailability[]]),
         priceDollars: z.number().int().min(0).nullable(),
         priceCents: z.number().int().min(0).max(99).nullable(),
         featured: z.boolean(),
         story: text(5000),
         categories: z.array(text(60).min(1)).max(20),
-        display: z.union([
-            z.object({ id: z.number().int().positive() }),
-            z.object({ venue: text(200).min(1), city: text(200).min(1), startDate: date, endDate: date }),
-            z.null(),
-        ]),
+        displays: z
+            .array(
+                z.union([
+                    z.object({ id: z.number().int().positive() }),
+                    z
+                        .object({ venue: text(200).min(1), city: text(200).min(1), startDate: date, endDate: date })
+                        .refine((d) => d.endDate >= d.startDate, 'End date must be on or after the start date'),
+                ]),
+            )
+            .max(50),
         images: z
             .array(z.object({ slot: z.enum(IMAGE_SLOTS), url: imageUrl }))
             .max(IMAGE_SLOTS.length),

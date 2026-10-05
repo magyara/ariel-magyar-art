@@ -182,6 +182,33 @@ export default function ArtworkDetail() {
             ))}
           </div>
 
+          {piece.exhibitions && piece.exhibitions.length > 0 && (
+            <div style={{ marginBottom: 34 }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: theme.brass, marginBottom: 14 }}>
+                Exhibition history
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(244,235,225,0.12)' }}>
+                {piece.exhibitions.map((ex) => (
+                  <div
+                    key={`${ex.venue}-${ex.dates}`}
+                    style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '4px 20px', padding: '14px 2px', background: theme.ink }}
+                  >
+                    <span style={{ fontSize: 15, color: theme.paper }}>
+                      {[ex.venue, ex.city].filter(Boolean).join(' · ')}
+                      {ex.timing !== 'past' && (
+                        <span style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.brass, marginLeft: 12 }}>
+                          {ex.timing === 'current' ? 'Now on view' : 'Upcoming'}
+                        </span>
+                      )}
+                    </span>
+                    {ex.dates && (
+                      <span style={{ fontSize: 14, letterSpacing: '0.04em', color: 'rgba(244,235,225,0.7)' }}>{ex.dates}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

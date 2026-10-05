@@ -68,6 +68,10 @@ in the browser to 2400px JPEG, keep their original shape, and upload to Vercel
 Blob; changes show on the site within a few minutes (the public API caches for
 60 seconds).
 
+**Date added** sets the order on the public artwork page (newest first).
+**Exhibitions** lists every show a piece has been in: the site says "On view"
+only while one of them is running, and past shows stay as a record.
+
 Older pieces' photos stay in `public/images/`. The admin only deletes Blob
 files, never those.
 
@@ -91,7 +95,10 @@ branch (`development`, then `main`):
 
 ```bash
 psql "$DATABASE_URL_UNPOOLED" -f db/migrations/001_instagram.sql
+psql "$DATABASE_URL_UNPOOLED" -f db/migrations/002_added_on_and_exhibition_history.sql
 ```
+
+Run each migration *before* deploying the code that needs it.
 
 ## Structure
 

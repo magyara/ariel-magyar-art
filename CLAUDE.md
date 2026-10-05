@@ -33,13 +33,14 @@ There is no test suite and no linter; CI (`.github/workflows/ci.yml`) runs `type
 
 ## Data flow
 
-Postgres tables: `artworks`, `categories`, `artwork_categories` (join), `images` (ordered by `position`), `displays` (exhibition venue/dates, referenced by `artworks.display_id`).
+Postgres tables: `artworks` (`added_on` sets the public list order, newest first), `categories`, `artwork_categories` (join), `images` (ordered by `position`), `displays` (exhibition venue/dates), `artwork_displays` (join — every show a piece has been in, kept as history), plus `app_settings` and `instagram_posts`. `artworks.display_id` is legacy and unused; drop it once nothing old is deployed.
 
 Rows never reach the UI raw. `api/_lib/artwork.ts` is the single place where a DB row becomes an `Artwork`:
 
 - `loadArtworksBatch(rows)` — for list endpoints. Fetches categories/images/displays for *all* ids in three `ANY($ids)` queries, then joins in memory. Use this for any new multi-row endpoint; per-row loading was the previous cause of slow page loads.
 - `loadArtworkRow(row)` — single artwork only (`api/artworks/[id].ts`).
 - `buildArtwork()` applies the presentation formatting: `formatSize`, `formatPrice`, `formatDate`. Prices and dimensions are stored as numbers and become display strings here, so `Artwork.price` is `'$450'`, not a number.
+- **"On view" is derived, not stored.** `Artwork.display` is set only for a show running today (Eastern time, inclusive of the end date), and `avail` becomes `'On Display'` then — unless the stored status is `Unavailable`. The stored enum still has `On Display` but the admin can't set it (`StoredAvailability`). No timer is needed: the 60s API cache means a show drops off within a minute of midnight.
 
 Endpoints follow one shape: reject non-GET with 405, set `Cache-Control: public, max-age=60, stale-while-revalidate=300`, return `{ artworks }` / `{ artwork }` / `{ categories }`, catch and return 500 with the error message. `/api/artworks?featured=true` returns only featured pieces — the homepage uses this to avoid loading the full catalog.
 
