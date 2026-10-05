@@ -20,7 +20,7 @@ function slotFor(label: string): ImageSlot | undefined {
 }
 
 /** Only files we uploaded to Blob get deleted; images under public/images/ are left alone. */
-function isBlobUrl(url: string): boolean {
+export function isBlobUrl(url: string): boolean {
     try {
         return new URL(url).hostname.endsWith('.blob.vercel-storage.com');
     } catch {
@@ -28,7 +28,7 @@ function isBlobUrl(url: string): boolean {
     }
 }
 
-async function deleteBlobs(urls: string[]): Promise<void> {
+export async function deleteBlobs(urls: string[]): Promise<void> {
     const blobs = urls.filter(isBlobUrl);
     if (blobs.length === 0) return;
     // Dev/preview databases are branched from production, so their rows can

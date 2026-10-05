@@ -5,6 +5,12 @@ import type { AdminArtworkInput, Availability } from '../../src/types.js';
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 const text = (max: number) => z.string().trim().max(max);
 
+/** Blob uploads are absolute URLs; older pieces use site-relative paths like /images/x.jpg. */
+export const imageUrl = z
+    .string()
+    .max(2000)
+    .refine((v) => /^\/(?!\/)/.test(v) || /^https:\/\//.test(v), 'Must be an https URL or a /path on this site');
+
 export const artworkInputSchema = z
     .object({
         title: text(200).min(1, 'Title is required'),
@@ -25,7 +31,7 @@ export const artworkInputSchema = z
             z.null(),
         ]),
         images: z
-            .array(z.object({ slot: z.enum(IMAGE_SLOTS), url: z.string().url() }))
+            .array(z.object({ slot: z.enum(IMAGE_SLOTS), url: imageUrl }))
             .max(IMAGE_SLOTS.length),
     })
     .superRefine((a, ctx) => {

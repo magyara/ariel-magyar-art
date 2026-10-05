@@ -1,26 +1,38 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { theme, text } from '../../theme';
 import { useNarrow } from '../../hooks/useMediaQuery';
 import {
   createArtwork,
+  createIgPost,
   deleteArtwork,
   getArtwork,
+  getIgStatus,
   getOptions,
   slugify,
   updateArtwork,
   uploadImage,
 } from '../../lib/adminApi';
 import { resizeToJpeg } from '../../lib/imagePrep';
-import { IMAGE_SLOTS, REQUIRED_SLOTS } from '../../types';
+import { closestAspect, measureImage, renderIgImage } from '../../lib/igImage';
+import { IG_CAPTION_MAX, IG_HASHTAG_MAX, IG_SLIDES_MAX, IMAGE_SLOTS, REQUIRED_SLOTS } from '../../types';
 import type {
   AdminArtwork,
   AdminArtworkInput,
   AdminOptions,
   Availability,
+  IgSlide,
+  IgStatus,
   ImageSlot,
   NewDisplayInput,
 } from '../../types';
+import InstagramComposer, {
+  buildCaption,
+  countHashtags,
+  DEFAULT_FIT,
+  initialComposerState,
+  type ComposerState,
+} from './InstagramComposer';
 import {
   page,
   pageTitle,
@@ -34,6 +46,7 @@ import {
   smallButton,
   dangerButton,
   errorBox,
+  noticeBox,
 } from './adminStyles';
 
 interface SlotState {
@@ -121,6 +134,19 @@ export default function ArtworkForm() {
   const [status, setStatus] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [ig, setIg] = useState<ComposerState>(initialComposerState);
+  const [igStatus, setIgStatus] = useState<IgStatus | null>(null);
+  const notice = (useLocation().state as { notice?: string } | null)?.notice;
+
+  // Instagram is optional: if its status can't be loaded the artwork form still works.
+  useEffect(() => {
+    getIgStatus()
+      .then((s) => {
+        setIgStatus(s);
+        setIg((c) => (c.hashtags ? c : { ...c, hashtags: s.defaultHashtags }));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([getOptions(), id ? getArtwork(id) : Promise.resolve(null)])
@@ -177,13 +203,34 @@ export default function ArtworkForm() {
       return;
     }
 
+    const igCaption = ig.caption ?? buildCaption(fields, ig.hashtags);
+    if (ig.enabled) {
+      const available = IMAGE_SLOTS.filter((s) => (slots[s].url || slots[s].file) && !ig.excluded.includes(s));
+      const problem =
+        available.length === 0
+          ? 'Pick at least one photo for the Instagram post.'
+          : igCaption.length > IG_CAPTION_MAX
+            ? `The Instagram caption is over ${IG_CAPTION_MAX} characters.`
+            : countHashtags(igCaption) > IG_HASHTAG_MAX
+              ? `Instagram allows at most ${IG_HASHTAG_MAX} hashtags.`
+              : null;
+      if (problem) {
+        setError(problem);
+        return;
+      }
+    }
+
     try {
       // Upload new photos first; keep the resulting URLs in state so a failed
       // save can be retried without uploading again.
       const images: AdminArtworkInput['images'] = [];
+      // Original files for photos chosen this session — the Instagram copies
+      // are rendered from these rather than re-downloading the upload.
+      const localFiles: Partial<Record<ImageSlot, File>> = {};
       for (const slot of IMAGE_SLOTS) {
         const current = slots[slot];
         if (current.file) {
+          localFiles[slot] = current.file;
           setStatus(`Uploading ${slot} photo…`);
           const jpeg = await resizeToJpeg(current.file);
           const url = await uploadImage(jpeg, `${slugify(fields.title)}-${slugify(slot)}`);
@@ -219,12 +266,71 @@ export default function ArtworkForm() {
       };
 
       setStatus('Saving…');
+      let artworkId: number;
       if (id) {
         await updateArtwork(id, payload);
-        navigate('/admin', { state: { notice: `Saved “${fields.title}”.` } });
+        artworkId = id;
       } else {
-        await createArtwork(payload);
-        navigate('/admin', { state: { notice: `Added “${fields.title}”. It will show on the site within a few minutes.` } });
+        artworkId = await createArtwork(payload);
+      }
+
+      if (!ig.enabled) {
+        navigate('/admin', {
+          state: {
+            notice: id
+              ? `Saved “${fields.title}”.`
+              : `Added “${fields.title}”. It will show on the site within a few minutes.`,
+          },
+        });
+        return;
+      }
+
+      // The artwork is saved at this point. If the Instagram step fails, land on
+      // the edit page (not "new") so retrying can't create the piece twice.
+      try {
+        const chosen = images.filter((i) => !ig.excluded.includes(i.slot)).slice(0, IG_SLIDES_MAX);
+        const aspect =
+          ig.aspect ?? closestAspect(await measureImage(slots[chosen[0].slot].preview ?? chosen[0].url));
+
+        const slides: IgSlide[] = [];
+        for (const [n, img] of chosen.entries()) {
+          setStatus(`Preparing Instagram image ${n + 1} of ${chosen.length}…`);
+          const fit = ig.fits[img.slot] ?? DEFAULT_FIT;
+          const copy = await renderIgImage(localFiles[img.slot] ?? img.url, {
+            aspect,
+            background: ig.background,
+            ...fit,
+          });
+          const igUrl = await uploadImage(copy, `${slugify(fields.title)}-${slugify(img.slot)}`, 'instagram');
+          slides.push({ sourceUrl: img.url, igUrl, ...fit });
+        }
+
+        setStatus(ig.action === 'publish' ? 'Posting to Instagram…' : 'Saving Instagram draft…');
+        const post = await createIgPost({
+          artworkId,
+          caption: igCaption,
+          aspect,
+          background: ig.background,
+          slides,
+          action: ig.action,
+        });
+
+        const outcome =
+          post.status === 'failed'
+            ? `Instagram rejected the post: ${post.error} You can retry it below.`
+            : post.status === 'draft'
+              ? 'Instagram draft created.'
+              : post.dryRun
+                ? 'Instagram dry run complete — nothing was posted (only the live site posts).'
+                : 'Posted to Instagram.';
+        navigate('/admin/instagram', { state: { notice: `Saved “${fields.title}”. ${outcome}` } });
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'unknown error';
+        setStatus(null);
+        navigate(`/admin/${artworkId}`, {
+          replace: true,
+          state: { notice: `The artwork is saved, but the Instagram post wasn’t created: ${reason} Save again to retry.` },
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -417,11 +523,26 @@ export default function ArtworkForm() {
         )}
       </div>
 
+      <h2 style={sectionTitle}>Instagram</h2>
+      <InstagramComposer
+        sources={IMAGE_SLOTS.flatMap((slot) => {
+          const src = slots[slot].preview ?? slots[slot].url;
+          return src ? [{ slot, src }] : [];
+        })}
+        details={fields}
+        state={ig}
+        onChange={setIg}
+        status={igStatus}
+        disabled={busy}
+      />
+
       <div style={{ marginTop: 52, paddingTop: 28, borderTop: `1px solid ${theme.rule}` }}>
+        {notice && <p style={noticeBox}>{notice}</p>}
         {error && <p style={errorBox}>{error}</p>}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
           <button type="submit" style={{ ...primaryButton, opacity: busy ? 0.6 : 1 }} disabled={busy}>
             {id ? 'Save changes' : 'Add artwork'}
+            {ig.enabled && (ig.action === 'publish' ? ' & post' : ' & save draft')}
           </button>
           <Link to="/admin" style={secondaryButton}>Cancel</Link>
           {status && <span style={{ color: text.soft, fontSize: 15 }}>{status}</span>}

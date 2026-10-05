@@ -23,7 +23,7 @@ There is no test suite and no linter; CI (`.github/workflows/ci.yml`) runs `type
 
 ## Environment variables
 
-`DATABASE_URL` (Neon pooled; API routes throw at module load without it), `DATABASE_URL_UNPOOLED`, `IG_ACCESS_TOKEN` (long-lived Instagram token — absent, `/api/instagram` returns an empty list and the homepage hides its Instagram section). These must also be set in the Vercel dashboard per environment.
+`DATABASE_URL` (Neon pooled; API routes throw at module load without it), `DATABASE_URL_UNPOOLED`, `IG_ACCESS_TOKEN` (long-lived Instagram token; only *seeds* the copy in `app_settings` — absent, `/api/instagram` returns an empty list and the homepage hides its Instagram section), plus the admin vars `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET`, `BLOB_READ_WRITE_TOKEN`. These must also be set in the Vercel dashboard per environment.
 
 ## Two TypeScript projects, one shared type file
 
@@ -66,6 +66,15 @@ Artwork images are served from `public/images/` (the DB stores the URL) and are 
 - Databases: Production uses the Neon `main` branch; local dev and Previews use a `development` branch copied from it. Because branches share Blob URLs with production, `deleteBlobs` only deletes files when `VERCEL_ENV === 'production'`.
 - Images: `IMAGE_SLOTS` in `src/types.ts` (`Full view`, `Detail` required; `Framed`, `Context` optional) are stored as `images.label`, with `position` = slot order. Saving only replaces slot-labelled rows, so hand-entered images with other labels survive. Uploads go browser → Vercel Blob (`handleUpload` signs, `addRandomSuffix`); only `*.blob.vercel-storage.com` files are ever deleted.
 - Admin types (`AdminArtworkInput` etc.) live in `src/types.ts`; the zod schema in `api/_lib/adminSchema.ts` must stay in sync with them.
+
+## Instagram posting
+
+The artwork form embeds `InstagramComposer`; after the artwork saves, `ArtworkForm` renders an Instagram copy of each chosen photo in the browser (`src/lib/igImage.ts`: 1080px JPEG at `4:5`, `1:1`, or `1.91:1`, padded or cropped), uploads them under `instagram/` in Blob, and POSTs `/api/admin/ig-posts`. The composer's CSS preview mirrors `renderIgImage`'s contain/cover maths — change one and change the other.
+
+- `instagram_posts` rows (`api/_lib/adminInstagram.ts`) hold caption, aspect, background, `slides` jsonb (`sourceUrl`, `igUrl`, fit, offsets), and `status` (`draft|scheduled|publishing|published|failed`). `publishPost` claims a row with a single `UPDATE … WHERE status IN (…) RETURNING` so it can't double-post, and records failures on the row instead of throwing.
+- `api/_lib/instagramPublish.ts` talks to `graph.instagram.com` (container → poll `status_code` → `media_publish`; carousels create child containers first). **`isLive()` is true only when `VERCEL_ENV === 'production'`** — everywhere else `publishToInstagram` returns a dry run (`ig_media_id` prefixed `dry-run-`) without any network call. Don't weaken that.
+- `api/_lib/igToken.ts`: the token lives in `app_settings`, is refreshed when older than 7 days, and is re-seeded when `IG_ACCESS_TOKEN` changes (fingerprint in `ig_token_seed`). `api/instagram.ts` reads through it and falls back to the env var if the table is missing.
+- Schema changes are plain SQL in `db/migrations/`, run by hand on each Neon branch.
 
 ## Paused features
 

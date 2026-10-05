@@ -10,6 +10,17 @@ import {
     listArtworks,
     updateArtwork,
 } from './_lib/adminArtworks.js';
+import {
+    createPost,
+    deletePost,
+    getStatus,
+    listPosts,
+    parseCaption,
+    parsePostInput,
+    publishPost,
+    setDefaultHashtags,
+    updateCaption,
+} from './_lib/adminInstagram.js';
 import type { AdminSession } from '../src/types.js';
 
 /**
@@ -113,9 +124,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
+        if (resource === 'ig-status' && method === 'GET') {
+            return res.status(200).json(await getStatus());
+        }
+
+        if (resource === 'ig-hashtags' && method === 'PUT') {
+            if (typeof req.body?.hashtags !== 'string') return res.status(400).json({ error: 'Missing hashtags' });
+            await setDefaultHashtags(req.body.hashtags);
+            return res.status(200).json({ ok: true });
+        }
+
+        if (resource === 'ig-posts') {
+            if (!idPart) {
+                if (method === 'GET') return res.status(200).json({ posts: await listPosts() });
+                if (method === 'POST') {
+                    const parsed = parsePostInput(req.body);
+                    if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+                    return res.status(201).json({ post: await createPost(parsed.data) });
+                }
+            } else {
+                const id = Number(idPart);
+                if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+
+                // PATCH saves a new caption (if given), then publishes when asked.
+                if (method === 'PATCH') {
+                    let post = null;
+                    if (req.body?.caption !== undefined) {
+                        const parsed = parseCaption(req.body);
+                        if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+                        post = await updateCaption(id, parsed.data);
+                    }
+                    if (req.body?.action === 'publish') post = await publishPost(id);
+                    return post ? res.status(200).json({ post }) : res.status(404).json({ error: 'Not found' });
+                }
+                if (method === 'DELETE') {
+                    const ok = await deletePost(id);
+                    return ok ? res.status(200).json({ ok: true }) : res.status(404).json({ error: 'Not found' });
+                }
+            }
+        }
+
         return res.status(404).json({ error: `No admin route for ${method} /${route}` });
     } catch (err) {
         console.error('admin request failed', method, route, err);
-        return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' });
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        // Postgres "undefined table": the Instagram migration hasn't been run on this database.
+        if (/relation "(app_settings|instagram_posts)" does not exist/.test(message)) {
+            return res.status(500).json({
+                error: 'The Instagram tables are missing from this database. Run db/migrations/001_instagram.sql on it, then try again.',
+            });
+        }
+        return res.status(500).json({ error: message });
     }
 }

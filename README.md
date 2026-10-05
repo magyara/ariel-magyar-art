@@ -26,7 +26,7 @@ so `vercel dev` is the way to exercise anything under `/api`.
 | `DATABASE_URL` | Neon pooled connection — the artwork catalog. Required; API routes fail to start without it. |
 | `DATABASE_URL_UNPOOLED` | Direct connection, for migrations and schema work |
 | `NEON_BRANCH` | Which Neon branch your `.env` points at. Not read by the app. |
-| `IG_ACCESS_TOKEN` | Long-lived Instagram token for the homepage feed. Optional — without it the homepage hides its Instagram section. |
+| `IG_ACCESS_TOKEN` | Long-lived Instagram token: homepage feed, and posting from `/admin`. Seeds the DB copy, which refreshes itself. Optional — without it the homepage hides its Instagram section. |
 | `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET` | Google sign-in for `/admin` and the allowed accounts |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob store for photos uploaded through `/admin` |
 
@@ -71,6 +71,28 @@ Blob; changes show on the site within a few minutes (the public API caches for
 Older pieces' photos stay in `public/images/`. The admin only deletes Blob
 files, never those.
 
+### Posting to Instagram
+
+Tick **Also create an Instagram post** on the artwork form to post the same
+piece. Pick which photos go in (one = single post, several = carousel), the post
+shape (4:5, 1:1, or 1.91:1), and per photo whether to pad or crop. The caption
+is built from the title, medium, size, year, story, and your default hashtags,
+and can be edited. Choose **Post now** or **Save as draft**; drafts, published
+posts, and failures are listed under `/admin/instagram`.
+
+Instagram gets separate 1080px copies — the site's photos are never changed.
+Only the production deployment really posts: locally and on Previews "Post now"
+is a dry run.
+
+### Database changes
+
+SQL migrations live in `db/migrations/` and are run by hand, once per Neon
+branch (`development`, then `main`):
+
+```bash
+psql "$DATABASE_URL_UNPOOLED" -f db/migrations/001_instagram.sql
+```
+
 ## Structure
 
 ```
@@ -84,6 +106,9 @@ api/
   _lib/session.ts       Google ID-token check + signed session cookie
   _lib/adminArtworks.ts admin reads and transactional writes
   _lib/adminSchema.ts   zod validation for the artwork form
+  _lib/adminInstagram.ts Instagram post records, validation, publish orchestration
+  _lib/instagramPublish.ts Instagram Graph API calls (dry run outside production)
+  _lib/igToken.ts       Instagram token stored in app_settings, auto-refreshed
   _lib/artwork.ts       DB rows → Artwork objects; batch + single loaders
 src/
   App.tsx               routes + page chrome
@@ -93,6 +118,7 @@ src/
   lib/api.ts            Instagram feed fetch
   lib/adminApi.ts       admin API calls + Blob upload
   lib/imagePrep.ts      in-browser resize to JPEG
+  lib/igImage.ts        renders the Instagram-shaped copy (pad or crop)
   components/
     Header.tsx          sticky nav, collapses to a hamburger under 760px
     Footer.tsx
@@ -107,4 +133,5 @@ src/
   pages/                Home, Artwork, ArtworkDetail, About, NotFound
   pages/admin/          /admin — lazy-loaded, no public header/footer
 public/images/          artwork photography and process shots
+db/migrations/          SQL run by hand per Neon branch
 ```
