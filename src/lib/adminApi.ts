@@ -5,6 +5,9 @@ import type {
   AdminArtworkSummary,
   AdminOptions,
   AdminSession,
+  IgPost,
+  IgPostInput,
+  IgStatus,
 } from '../types';
 
 /** Fired when the session cookie is missing or expired, so the shell can show sign-in again. */
@@ -51,10 +54,28 @@ export const updateArtwork = (id: number, input: AdminArtworkInput) =>
 
 export const deleteArtwork = (id: number) => request<{ ok: true }>(`artworks/${id}`, { method: 'DELETE' });
 
-/** Uploads straight from the browser to Vercel Blob; the server only signs the request. */
-export async function uploadImage(file: Blob, name: string): Promise<string> {
+export const getIgStatus = () => request<IgStatus>('ig-status');
+
+export const saveDefaultHashtags = (hashtags: string) =>
+  request<{ ok: true }>('ig-hashtags', { method: 'PUT', body: { hashtags } });
+
+export const listIgPosts = () => request<{ posts: IgPost[] }>('ig-posts').then((d) => d.posts);
+
+export const createIgPost = (input: IgPostInput) =>
+  request<{ post: IgPost }>('ig-posts', { method: 'POST', body: input }).then((d) => d.post);
+
+export const updateIgPost = (id: number, changes: { caption?: string; action?: 'publish' }) =>
+  request<{ post: IgPost }>(`ig-posts/${id}`, { method: 'PATCH', body: changes }).then((d) => d.post);
+
+export const deleteIgPost = (id: number) => request<{ ok: true }>(`ig-posts/${id}`, { method: 'DELETE' });
+
+/**
+ * Uploads straight from the browser to Vercel Blob; the server only signs the
+ * request. `folder` separates site photos from the Instagram-shaped copies.
+ */
+export async function uploadImage(file: Blob, name: string, folder: 'artworks' | 'instagram' = 'artworks'): Promise<string> {
   try {
-    const blob = await upload(`artworks/${name}.jpg`, file, {
+    const blob = await upload(`${folder}/${name}.jpg`, file, {
       access: 'public',
       handleUploadUrl: '/api/admin/upload',
       contentType: 'image/jpeg',

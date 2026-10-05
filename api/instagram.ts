@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getIgToken } from './_lib/igToken.js';
 
 interface InstagramMedia {
   id: string;
@@ -18,23 +19,27 @@ export interface InstagramPost {
 
 const LIMIT = 5;
 const CACHE_MS = 60 * 60 * 1000;
+const CACHE_OK = 'public, max-age=3600, stale-while-revalidate=86400';
+// Failures must not be cached for long: an empty feed from an expired token
+// would otherwise keep being served by browsers and the CDN after it's fixed.
+const CACHE_FAILED = 'public, max-age=60';
 
 let cache: { posts: InstagramPost[]; fetchedAt: number } | null = null;
 
 /**
- * Requires IG_ACCESS_TOKEN (a long-lived Instagram access token) in the Vercel
- * project's env vars. Without it, this returns an empty list so the homepage
- * falls back to its placeholder tiles instead of breaking.
+ * Reads the feed with the long-lived Instagram token, which is seeded from
+ * IG_ACCESS_TOKEN and kept fresh in the database (see _lib/igToken.ts). With no
+ * token this returns an empty list and the homepage hides its Instagram section.
  */
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
-
   if (cache && Date.now() - cache.fetchedAt < CACHE_MS) {
+    res.setHeader('Cache-Control', CACHE_OK);
     return res.status(200).json({ posts: cache.posts });
   }
 
-  const token = process.env.IG_ACCESS_TOKEN;
+  const token = await getIgToken();
   if (!token) {
+    res.setHeader('Cache-Control', CACHE_FAILED);
     return res.status(200).json({ posts: [] });
   }
 
@@ -60,9 +65,11 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       }));
 
     cache = { posts, fetchedAt: Date.now() };
+    res.setHeader('Cache-Control', CACHE_OK);
     return res.status(200).json({ posts });
   } catch (err) {
     console.error('instagram feed failed', err);
+    res.setHeader('Cache-Control', CACHE_FAILED);
     return res.status(200).json({ posts: cache?.posts ?? [] });
   }
 }

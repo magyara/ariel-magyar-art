@@ -99,6 +99,69 @@ export interface AdminSession {
   googleClientId: string | null;
 }
 
+export const IG_ASPECTS = ['4:5', '1:1', '1.91:1'] as const;
+export type IgAspect = (typeof IG_ASPECTS)[number];
+
+/** width / height for each Instagram post shape. */
+export const IG_ASPECT_RATIO: Record<IgAspect, number> = { '4:5': 4 / 5, '1:1': 1, '1.91:1': 1.91 };
+
+export const IG_CAPTION_MAX = 2200;
+export const IG_HASHTAG_MAX = 30;
+export const IG_SLIDES_MAX = 10;
+
+export type IgFit = 'pad' | 'crop';
+
+export interface IgSlide {
+  /** The site image this slide was made from. */
+  sourceUrl: string;
+  /** The Instagram-shaped copy that actually gets posted. */
+  igUrl: string;
+  fit: IgFit;
+  /** Crop position along each axis, 0–1 (0.5 = centered). Ignored when padding. */
+  offsetX: number;
+  offsetY: number;
+}
+
+export type IgPostStatus = 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
+
+export interface IgPostInput {
+  artworkId: number | null;
+  caption: string;
+  aspect: IgAspect;
+  background: string;
+  slides: IgSlide[];
+  /** Save for later, or publish right away. */
+  action: 'draft' | 'publish';
+}
+
+export interface IgPost {
+  id: number;
+  artworkId: number | null;
+  artworkTitle: string | null;
+  caption: string;
+  aspect: IgAspect;
+  background: string;
+  slides: IgSlide[];
+  status: IgPostStatus;
+  scheduledAt: string | null;
+  permalink: string | null;
+  error: string | null;
+  /** True when "published" only as a dry run outside production. */
+  dryRun: boolean;
+  createdAt: string;
+  publishedAt: string | null;
+}
+
+export interface IgStatus {
+  /** A token is available (DB or IG_ACCESS_TOKEN). */
+  configured: boolean;
+  username: string | null;
+  /** Only the production deployment really posts; everywhere else is a dry run. */
+  live: boolean;
+  defaultHashtags: string;
+  error: string | null;
+}
+
 export interface InstagramPost {
   id: string;
   imageUrl: string;

@@ -6,6 +6,7 @@ import type { AdminSession } from '../../types';
 import AdminLogin from './AdminLogin';
 import ArtworkList from './ArtworkList';
 import ArtworkForm from './ArtworkForm';
+import InstagramPosts from './InstagramPosts';
 import { page, errorBox, smallButton } from './adminStyles';
 
 const navLink = { ...eyebrow, fontSize: 12, color: theme.bone };
@@ -49,9 +50,10 @@ export default function AdminApp() {
         <Link to="/admin" style={{ fontFamily: theme.serif, fontSize: 24, color: theme.paper }}>
           Studio admin
         </Link>
-        <nav style={{ display: 'flex', gap: 24, flex: 1 }}>
+        <nav style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 24px', flex: 1 }}>
           <Link to="/admin" style={navLink}>All artwork</Link>
           <Link to="/admin/new" style={navLink}>Add artwork</Link>
+          <Link to="/admin/instagram" style={navLink}>Instagram</Link>
           <a href="/" target="_blank" rel="noopener noreferrer" style={navLink}>View site ↗</a>
         </nav>
         <span style={{ fontSize: 13, color: text.faint }}>{session.email}</span>
@@ -67,6 +69,7 @@ export default function AdminApp() {
       <Routes>
         <Route index element={<ArtworkList />} />
         <Route path="new" element={<ArtworkForm />} />
+        <Route path="instagram" element={<InstagramPosts />} />
         <Route path=":id" element={<ArtworkForm />} />
       </Routes>
     </>
