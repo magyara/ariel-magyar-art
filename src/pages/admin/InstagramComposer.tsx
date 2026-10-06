@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { theme, text } from '../../theme';
 import { saveDefaultHashtags } from '../../lib/adminApi';
 import { closestAspect, matchesAspect, measureImage } from '../../lib/igImage';
+import { defaultScheduleInput } from '../../lib/scheduleTime';
+import ScheduleInput from './ScheduleInput';
 import { IG_ASPECTS, IG_ASPECT_RATIO, IG_CAPTION_MAX, IG_HASHTAG_MAX, IG_SLIDES_MAX } from '../../types';
 import type { IgAspect, IgFit, IgStatus, ImageSlot } from '../../types';
 import { caption as captionStyle, hint, input, smallButton, errorBox, noticeBox } from './adminStyles';
@@ -25,7 +27,9 @@ export interface ComposerState {
   /** null = follow the template built from the artwork details. */
   caption: string | null;
   hashtags: string;
-  action: 'publish' | 'draft';
+  action: 'publish' | 'schedule' | 'draft';
+  /** datetime-local value, used when action is 'schedule'. */
+  scheduledAt: string;
 }
 
 export const initialComposerState = (): ComposerState => ({
@@ -37,6 +41,7 @@ export const initialComposerState = (): ComposerState => ({
   caption: null,
   hashtags: '',
   action: 'publish',
+  scheduledAt: '',
 });
 
 export interface CaptionDetails {
@@ -264,18 +269,40 @@ export default function InstagramComposer({ sources, details, state, onChange, s
                 </span>
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 28px' }}>
-                {(
-                  [
-                    ['publish', 'Post now'],
-                    ['draft', 'Save as draft'],
-                  ] as const
-                ).map(([value, label]) => (
-                  <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 16, cursor: 'pointer' }}>
-                    <input type="radio" name="ig-action" checked={state.action === value} onChange={() => set({ action: value })} />
-                    {label}
-                  </label>
-                ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 28px' }}>
+                  {(
+                    [
+                      ['publish', 'Post now'],
+                      ['schedule', 'Schedule'],
+                      ['draft', 'Save as draft'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <label key={value} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 16, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="ig-action"
+                        checked={state.action === value}
+                        onChange={() =>
+                          set({
+                            action: value,
+                            scheduledAt: value === 'schedule' && !state.scheduledAt ? defaultScheduleInput() : state.scheduledAt,
+                          })
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                {state.action === 'schedule' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <ScheduleInput value={state.scheduledAt} onChange={(scheduledAt) => set({ scheduledAt })} />
+                    <span style={{ ...hint, fontSize: 12 }}>
+                      Your local time. Goes out within about 15–30 minutes of it; you can reschedule or cancel from the
+                      Instagram page.
+                    </span>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -298,7 +325,7 @@ function StatusNote({ status }: { status: IgStatus | null }) {
       {status.username ? `Connected as @${status.username}. ` : ''}
       {status.live
         ? '“Post now” publishes to Instagram immediately.'
-        : 'Test mode: only the live site posts for real. Here, “Post now” does a dry run and nothing goes to Instagram.'}
+        : 'Test mode: only the live site posts for real. Here, “Post now” does a dry run and nothing goes to Instagram, and scheduled posts wait until you post them by hand.'}
     </p>
   );
 }

@@ -29,6 +29,7 @@ so `vercel dev` is the way to exercise anything under `/api`.
 | `IG_ACCESS_TOKEN` | Long-lived Instagram token: homepage feed, and posting from `/admin`. Seeds the DB copy, which refreshes itself. Optional — without it the homepage hides its Instagram section. |
 | `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET` | Google sign-in for `/admin` and the allowed accounts |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob store for photos uploaded through `/admin` |
+| `CRON_SECRET` | Authorizes the Instagram scheduler's calls to `/api/cron`. Also a GitHub repo secret. |
 
 ## Checks
 
@@ -44,6 +45,7 @@ GitHub Actions runs the same two commands on every PR and on pushes to `dev`
 and `main` (`.github/workflows/ci.yml`). After Vercel finishes a Preview
 deploy, `smoke.yml` checks `/api/health`, `/api/artworks?featured=true`, and
 `/` on the live URL. Dependabot opens monthly dependency PRs against `dev`.
+`scheduler.yml` publishes scheduled Instagram posts (see below).
 
 ## Deploy
 
@@ -80,13 +82,37 @@ files, never those.
 Tick **Also create an Instagram post** on the artwork form to post the same
 piece. Pick which photos go in (one = single post, several = carousel), the post
 shape (4:5, 1:1, or 1.91:1), and per photo whether to pad or crop. The caption
-is built from the title, medium, size, year, story, and your default hashtags,
-and can be edited. Choose **Post now** or **Save as draft**; drafts, published
-posts, and failures are listed under `/admin/instagram`.
+is built from the title (in quotes), medium, size, story, and your default
+hashtags, and can be edited. Choose **Post now**, **Schedule** (a date and
+time), or **Save as draft**. `/admin/instagram` lists upcoming posts first;
+there you can edit captions, reschedule, cancel a schedule, post now, or retry
+a failure.
 
 Instagram gets separate 1080px copies — the site's photos are never changed.
 Only the production deployment really posts: locally and on Previews "Post now"
 is a dry run.
+
+#### Scheduled posts
+
+Instagram's API can't schedule, and Vercel Hobby's cron only runs daily, so
+`.github/workflows/scheduler.yml` calls `POST /api/cron` on production every 15
+minutes. Each run publishes posts that are due and refreshes the Instagram
+token. Expect posts within about 15–30 minutes of their time — GitHub can
+start scheduled runs late.
+
+- The run fails (and GitHub emails you) when a post fails. Failed posts are
+  never retried automatically; use **Retry now** in `/admin/instagram`. A post
+  cut off mid-publish is marked failed with a note to check Instagram first.
+- Setup: put the same `CRON_SECRET` in Vercel (Production) and in GitHub →
+  Settings → Secrets and variables → Actions. The URL defaults to
+  `https://www.arielmagyar.art`; override it with a repo *variable* `SITE_URL`.
+- GitHub only runs scheduled workflows from `main`, and turns them off after 60
+  days without repo activity — re-enable it under Actions if that happens. Run
+  it by hand from the Actions tab (**Run workflow**) to test.
+- The scheduler only calls production, so scheduled posts on the `development`
+  database never go out by themselves. To try it locally, run
+  `curl -X POST -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron`
+  (a dry run).
 
 ### Database changes
 
@@ -96,6 +122,7 @@ branch (`development`, then `main`):
 ```bash
 psql "$DATABASE_URL_UNPOOLED" -f db/migrations/001_instagram.sql
 psql "$DATABASE_URL_UNPOOLED" -f db/migrations/002_added_on_and_exhibition_history.sql
+psql "$DATABASE_URL_UNPOOLED" -f db/migrations/003_instagram_scheduling.sql
 ```
 
 Run each migration *before* deploying the code that needs it.
@@ -109,6 +136,7 @@ api/
   categories.ts         GET  — category names
   instagram.ts          GET  — cached Instagram feed
   health.ts             GET  — config smoke test
+  cron.ts               POST — publishes due Instagram posts (called by scheduler.yml)
   admin.ts              /api/admin/* (via vercel.json rewrite): sign-in, uploads, artwork CRUD
   _lib/session.ts       Google ID-token check + signed session cookie
   _lib/adminArtworks.ts admin reads and transactional writes
@@ -126,6 +154,7 @@ src/
   lib/adminApi.ts       admin API calls + Blob upload
   lib/imagePrep.ts      in-browser resize to JPEG
   lib/igImage.ts        renders the Instagram-shaped copy (pad or crop)
+  lib/scheduleTime.ts   datetime-local ↔ ISO helpers for scheduling
   components/
     Header.tsx          sticky nav, collapses to a hamburger under 760px
     Footer.tsx

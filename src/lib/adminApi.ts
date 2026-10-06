@@ -6,6 +6,7 @@ import type {
   AdminOptions,
   AdminSession,
   IgPost,
+  IgPostChange,
   IgPostInput,
   IgStatus,
 } from '../types';
@@ -64,7 +65,7 @@ export const listIgPosts = () => request<{ posts: IgPost[] }>('ig-posts').then((
 export const createIgPost = (input: IgPostInput) =>
   request<{ post: IgPost }>('ig-posts', { method: 'POST', body: input }).then((d) => d.post);
 
-export const updateIgPost = (id: number, changes: { caption?: string; action?: 'publish' }) =>
+export const updateIgPost = (id: number, changes: IgPostChange) =>
   request<{ post: IgPost }>(`ig-posts/${id}`, { method: 'PATCH', body: changes }).then((d) => d.post);
 
 export const deleteIgPost = (id: number) => request<{ ok: true }>(`ig-posts/${id}`, { method: 'DELETE' });

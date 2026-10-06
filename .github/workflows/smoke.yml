@@ -42,3 +42,9 @@ jobs:
             ${BYPASS:+-H "x-vercel-protection-bypass: $BYPASS"} "$BASE_URL/api/admin/artworks")
           echo "unauthenticated /api/admin/artworks: $status"
           [ "$status" = 401 ]
+
+          # So must the scheduler endpoint without its bearer secret.
+          status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 -X POST \
+            ${BYPASS:+-H "x-vercel-protection-bypass: $BYPASS"} "$BASE_URL/api/cron")
+          echo "unauthenticated /api/cron: $status"
+          [ "$status" = 401 ]
