@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { z } from 'zod';
 import { IG_ASPECTS, IG_CAPTION_MAX, IG_HASHTAG_MAX, IG_SLIDES_MAX } from '../../src/types.js';
-import type { IgPost, IgPostInput, IgSlide, IgStatus } from '../../src/types.js';
+import type { IgPost, IgPostChange, IgPostInput, IgSlide, IgStatus } from '../../src/types.js';
 import { deleteBlobs, isBlobUrl } from './adminArtworks.js';
 import { imageUrl } from './adminSchema.js';
 import { getIgToken, getSetting, setSetting } from './igToken.js';
@@ -11,6 +11,16 @@ const sql = neon(process.env.DATABASE_URL!);
 
 const HASHTAGS_KEY = 'ig_default_hashtags';
 const DRY_RUN_PREFIX = 'dry-run-';
+/** A post still 'publishing' after this long was cut off mid-way. */
+const STUCK_AFTER = '10 minutes';
+/** Leave headroom under the function's 60s limit; later posts wait for the next run. */
+const SCHEDULER_BUDGET_MS = 30_000;
+
+// A minute of slack so "schedule for now" from a slow form still counts.
+const futureTime = z
+    .string()
+    .datetime({ offset: true })
+    .refine((v) => new Date(v).getTime() > Date.now() - 60_000, 'Pick a time in the future');
 
 const countHashtags = (caption: string) => (caption.match(/#[\p{L}\p{N}_]+/gu) ?? []).length;
 
@@ -34,8 +44,17 @@ const postInputSchema = z.object({
     aspect: z.enum(IG_ASPECTS),
     background: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Background must be a hex color'),
     slides: z.array(slide).min(1, 'Pick at least one image').max(IG_SLIDES_MAX),
-    action: z.enum(['draft', 'publish']),
-});
+    action: z.enum(['draft', 'publish', 'schedule']),
+    scheduledAt: futureTime.nullable().optional(),
+}).refine((p) => p.action !== 'schedule' || p.scheduledAt, { message: 'Pick a date and time', path: ['scheduledAt'] });
+
+const postChangeSchema = z
+    .object({
+        caption: caption.optional(),
+        action: z.enum(['publish', 'schedule', 'unschedule']).optional(),
+        scheduledAt: futureTime.optional(),
+    })
+    .refine((c) => c.action !== 'schedule' || c.scheduledAt, { message: 'Pick a date and time', path: ['scheduledAt'] });
 
 const firstIssue = (error: z.ZodError) => {
     const issue = error.issues[0];
@@ -47,9 +66,9 @@ export function parsePostInput(body: unknown): { data: IgPostInput } | { error: 
     return parsed.success ? { data: parsed.data } : { error: firstIssue(parsed.error) };
 }
 
-export function parseCaption(body: unknown): { data: string } | { error: string } {
-    const parsed = z.object({ caption }).safeParse(body);
-    return parsed.success ? { data: parsed.data.caption } : { error: firstIssue(parsed.error) };
+export function parsePostChange(body: unknown): { data: IgPostChange } | { error: string } {
+    const parsed = postChangeSchema.safeParse(body);
+    return parsed.success ? { data: parsed.data } : { error: firstIssue(parsed.error) };
 }
 
 function toPost(r: any): IgPost {
@@ -80,7 +99,8 @@ export async function listPosts(): Promise<IgPost[]> {
         LEFT JOIN
             artworks a ON a.id = p.artwork_id
         ORDER BY
-            p.created_at DESC
+            -- Upcoming posts first, soonest at the top; then everything else, newest first.
+            (p.status = 'scheduled') DESC, p.scheduled_at, p.created_at DESC
         LIMIT 100
     `;
     return rows.map(toPost);
@@ -97,9 +117,14 @@ async function getPost(id: number): Promise<IgPost | null> {
 }
 
 export async function createPost(input: IgPostInput): Promise<IgPost> {
+    const scheduled = input.action === 'schedule';
     const rows = await sql`
-        INSERT INTO instagram_posts (artwork_id, caption, aspect, background, slides)
-        VALUES (${input.artworkId}, ${input.caption}, ${input.aspect}, ${input.background}, ${JSON.stringify(input.slides)}::jsonb)
+        INSERT INTO instagram_posts (artwork_id, caption, aspect, background, slides, status, scheduled_at)
+        VALUES (
+            ${input.artworkId}, ${input.caption}, ${input.aspect}, ${input.background},
+            ${JSON.stringify(input.slides)}::jsonb,
+            ${scheduled ? 'scheduled' : 'draft'}, ${scheduled ? input.scheduledAt : null}
+        )
         RETURNING id
     `;
     const id: number = (rows[0] as any).id;
@@ -117,7 +142,7 @@ export async function publishPost(id: number): Promise<IgPost | null> {
     // scheduler) can't both publish it.
     const claimed = await sql`
         UPDATE instagram_posts
-        SET status = 'publishing', attempts = attempts + 1, error = NULL
+        SET status = 'publishing', attempts = attempts + 1, error = NULL, claimed_at = now()
         WHERE id = ${id} AND status IN ('draft', 'scheduled', 'failed')
         RETURNING caption, slides
     `;
@@ -140,13 +165,85 @@ export async function publishPost(id: number): Promise<IgPost | null> {
     return getPost(id);
 }
 
-/** Captions can't be changed through the API once a post is on Instagram. */
-export async function updateCaption(id: number, newCaption: string): Promise<IgPost | null> {
-    await sql`
-        UPDATE instagram_posts SET caption = ${newCaption}
-        WHERE id = ${id} AND status IN ('draft', 'scheduled', 'failed')
-    `;
+/**
+ * Applies caption edits and schedule changes, then publishes if asked.
+ * Captions can't be changed through the API once a post is on Instagram, so
+ * edits only apply to posts that haven't gone out.
+ */
+export async function changePost(id: number, change: IgPostChange): Promise<IgPost | null> {
+    if (change.caption !== undefined) {
+        await sql`
+            UPDATE instagram_posts SET caption = ${change.caption}
+            WHERE id = ${id} AND status IN ('draft', 'scheduled', 'failed')
+        `;
+    }
+    if (change.action === 'schedule') {
+        await sql`
+            UPDATE instagram_posts SET status = 'scheduled', scheduled_at = ${change.scheduledAt!}, error = NULL
+            WHERE id = ${id} AND status IN ('draft', 'scheduled', 'failed')
+        `;
+    }
+    if (change.action === 'unschedule') {
+        await sql`
+            UPDATE instagram_posts SET status = 'draft', scheduled_at = NULL
+            WHERE id = ${id} AND status = 'scheduled'
+        `;
+    }
+    if (change.action === 'publish') return publishPost(id);
     return getPost(id);
+}
+
+export interface SchedulerResult {
+    published: number[];
+    failed: Array<{ id: number; error: string | null }>;
+    /** Posts found stuck mid-publish and marked failed. */
+    interrupted: number[];
+    /** Due posts left for the next run because the time budget ran out. */
+    remaining: number;
+}
+
+/**
+ * Called by the scheduler (api/cron.ts) every ~15 minutes: publishes posts
+ * whose time has come, oldest first. Failed posts are not retried
+ * automatically — a repeated failure could spam the account; they wait for a
+ * manual Retry in /admin/instagram.
+ */
+export async function publishDuePosts(): Promise<SchedulerResult> {
+    const started = Date.now();
+
+    // We can't tell whether Instagram received a cut-off publish, so these are
+    // flagged for a human rather than retried.
+    const stuck = await sql`
+        UPDATE instagram_posts
+        SET status = 'failed',
+            error = 'Publishing was interrupted. Check Instagram before retrying — it may already be posted.'
+        WHERE status = 'publishing' AND claimed_at < now() - ${STUCK_AFTER}::interval
+        RETURNING id
+    `;
+
+    const due = await sql`
+        SELECT id FROM instagram_posts
+        WHERE status = 'scheduled' AND scheduled_at <= now()
+        ORDER BY scheduled_at
+    `;
+
+    const result: SchedulerResult = {
+        published: [],
+        failed: [],
+        interrupted: stuck.map((r: any) => r.id),
+        remaining: 0,
+    };
+
+    for (const [i, row] of (due as any[]).entries()) {
+        if (Date.now() - started > SCHEDULER_BUDGET_MS) {
+            result.remaining = due.length - i;
+            break;
+        }
+        const post = await publishPost(row.id);
+        if (post?.status === 'published') result.published.push(row.id);
+        else if (post?.status === 'failed') result.failed.push({ id: row.id, error: post.error });
+    }
+    return result;
 }
 
 /**

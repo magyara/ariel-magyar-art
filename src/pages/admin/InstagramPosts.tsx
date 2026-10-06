@@ -3,7 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { theme, text } from '../../theme';
 import { deleteIgPost, getIgStatus, listIgPosts, updateIgPost } from '../../lib/adminApi';
 import { IG_ASPECT_RATIO, IG_CAPTION_MAX } from '../../types';
-import type { IgPost, IgPostStatus, IgStatus } from '../../types';
+import type { IgPost, IgPostChange, IgPostStatus, IgStatus } from '../../types';
+import { defaultScheduleInput, formatScheduled, localInputToIso, scheduleProblem, toQuarterHourInput } from '../../lib/scheduleTime';
+import ScheduleInput from './ScheduleInput';
 import { page, pageTitle, caption as captionStyle, hint, input, smallButton, dangerButton, errorBox, noticeBox } from './adminStyles';
 
 const STATUS_LABEL: Record<IgPostStatus, string> = {
@@ -47,7 +49,9 @@ export default function InstagramPosts() {
       {status?.configured && !status.error && (
         <p style={{ ...hint, margin: '-12px 0 28px' }}>
           {status.username && `Connected as @${status.username}. `}
-          {status.live ? 'Posting is live.' : 'Test mode: posts here are dry runs — only the live site posts for real.'}
+          {status.live
+            ? 'Posting is live. Scheduled posts go out within about 15–30 minutes of their time.'
+            : 'Test mode: posts here are dry runs — only the live site posts for real. The scheduler only runs for the live site, so use “Post now” to test a scheduled post.'}
         </p>
       )}
 
@@ -79,9 +83,17 @@ function PostRow({ post, onChange, onDelete, onError }: RowProps) {
   const [draftCaption, setDraftCaption] = useState(post.caption);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** datetime-local value while the schedule picker is open. */
+  const [picking, setPicking] = useState<string | null>(null);
 
-  const editable = post.status === 'draft' || post.status === 'failed';
+  const editable = post.status === 'draft' || post.status === 'scheduled' || post.status === 'failed';
+  const scheduled = post.status === 'scheduled' && post.scheduledAt !== null;
   const dirty = draftCaption !== post.caption;
+  const changes = (extra: IgPostChange): IgPostChange => (dirty ? { caption: draftCaption, ...extra } : extra);
+
+  const when = scheduled
+    ? `Posts ${formatScheduled(post.scheduledAt!)}${new Date(post.scheduledAt!).getTime() < Date.now() ? ' (due now)' : ''}`
+    : new Date(post.publishedAt ?? post.createdAt).toLocaleString();
 
   const run = async (label: string, action: () => Promise<void>) => {
     onError(null);
@@ -119,9 +131,7 @@ function PostRow({ post, onChange, onDelete, onError }: RowProps) {
           <span style={{ ...captionStyle, color: statusColor(post) }}>
             {post.status === 'published' && post.dryRun ? 'Dry run — not posted' : STATUS_LABEL[post.status]}
           </span>
-          <span style={{ ...hint, fontSize: 12 }}>
-            {new Date(post.publishedAt ?? post.createdAt).toLocaleString()}
-          </span>
+          <span style={{ ...hint, fontSize: scheduled ? 14 : 12, color: scheduled ? theme.bone : text.faint }}>{when}</span>
         </div>
 
         {post.status === 'failed' && post.error && <p style={{ ...errorBox, margin: 0 }}>{post.error}</p>}
@@ -142,6 +152,30 @@ function PostRow({ post, onChange, onDelete, onError }: RowProps) {
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: text.soft, whiteSpace: 'pre-wrap' }}>{post.caption}</p>
         )}
 
+        {picking !== null && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            <ScheduleInput value={picking} onChange={setPicking} />
+            <button
+              type="button"
+              style={{ ...smallButton, background: theme.paper, color: theme.ink }}
+              disabled={busy !== null}
+              onClick={() => {
+                const problem = scheduleProblem(picking);
+                if (problem) return onError(problem);
+                run('Scheduling…', async () => {
+                  onChange(await updateIgPost(post.id, changes({ action: 'schedule', scheduledAt: localInputToIso(picking)! })));
+                  setPicking(null);
+                });
+              }}
+            >
+              {scheduled ? 'Save new time' : 'Schedule'}
+            </button>
+            <button type="button" style={smallButton} onClick={() => setPicking(null)}>
+              Never mind
+            </button>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
           {editable && (
             <>
@@ -149,12 +183,30 @@ function PostRow({ post, onChange, onDelete, onError }: RowProps) {
                 type="button"
                 style={{ ...smallButton, background: theme.paper, color: theme.ink }}
                 disabled={busy !== null}
-                onClick={() =>
-                  run('Posting…', async () => onChange(await updateIgPost(post.id, { caption: draftCaption, action: 'publish' })))
-                }
+                onClick={() => run('Posting…', async () => onChange(await updateIgPost(post.id, changes({ action: 'publish' }))))}
               >
-                {post.status === 'failed' ? 'Retry' : 'Post now'}
+                {post.status === 'failed' ? 'Retry now' : 'Post now'}
               </button>
+              {picking === null && (
+                <button
+                  type="button"
+                  style={smallButton}
+                  disabled={busy !== null}
+                  onClick={() => setPicking(scheduled ? toQuarterHourInput(new Date(post.scheduledAt!)) : defaultScheduleInput())}
+                >
+                  {scheduled ? 'Reschedule' : 'Schedule…'}
+                </button>
+              )}
+              {scheduled && (
+                <button
+                  type="button"
+                  style={smallButton}
+                  disabled={busy !== null}
+                  onClick={() => run('Cancelling…', async () => onChange(await updateIgPost(post.id, changes({ action: 'unschedule' }))))}
+                >
+                  Cancel schedule
+                </button>
+              )}
               {dirty && (
                 <button
                   type="button"

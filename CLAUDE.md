@@ -17,13 +17,13 @@ npm run typecheck         # checks BOTH tsconfigs: src and api
 npm run preview           # serve the built dist/
 ```
 
-There is no test suite and no linter; CI (`.github/workflows/ci.yml`) runs `typecheck` + `build` on PRs, and `smoke.yml` hits the API on each Vercel Preview deploy. `npm run typecheck` is the verification gate — run it after any change, since `tsconfig.json` sets `noUnusedLocals`/`noUnusedParameters` and an unused import will fail the production build.
+There is no test suite and no linter; CI (`.github/workflows/ci.yml`) runs `typecheck` + `build` on PRs, and `smoke.yml` hits the API on each Vercel Preview deploy (`scheduler.yml` is the Instagram timer, below). `npm run typecheck` is the verification gate — run it after any change, since `tsconfig.json` sets `noUnusedLocals`/`noUnusedParameters` and an unused import will fail the production build.
 
 `vercel dev` needs `.env` populated. `GET /api/health` is a no-DB smoke test that the functions are running.
 
 ## Environment variables
 
-`DATABASE_URL` (Neon pooled; API routes throw at module load without it), `DATABASE_URL_UNPOOLED`, `IG_ACCESS_TOKEN` (long-lived Instagram token; only *seeds* the copy in `app_settings` — absent, `/api/instagram` returns an empty list and the homepage hides its Instagram section), plus the admin vars `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET`, `BLOB_READ_WRITE_TOKEN`. These must also be set in the Vercel dashboard per environment.
+`DATABASE_URL` (Neon pooled; API routes throw at module load without it), `DATABASE_URL_UNPOOLED`, `IG_ACCESS_TOKEN` (long-lived Instagram token; only *seeds* the copy in `app_settings` — absent, `/api/instagram` returns an empty list and the homepage hides its Instagram section), plus the admin vars `GOOGLE_CLIENT_ID`, `ADMIN_EMAILS`, `SESSION_SECRET`, `BLOB_READ_WRITE_TOKEN`, and `CRON_SECRET` (bearer for `/api/cron`; also a GitHub repo secret). These must also be set in the Vercel dashboard per environment.
 
 ## Two TypeScript projects, one shared type file
 
@@ -75,7 +75,8 @@ The artwork form embeds `InstagramComposer`; after the artwork saves, `ArtworkFo
 - `instagram_posts` rows (`api/_lib/adminInstagram.ts`) hold caption, aspect, background, `slides` jsonb (`sourceUrl`, `igUrl`, fit, offsets), and `status` (`draft|scheduled|publishing|published|failed`). `publishPost` claims a row with a single `UPDATE … WHERE status IN (…) RETURNING` so it can't double-post, and records failures on the row instead of throwing.
 - `api/_lib/instagramPublish.ts` talks to `graph.instagram.com` (container → poll `status_code` → `media_publish`; carousels create child containers first). **`isLive()` is true only when `VERCEL_ENV === 'production'`** — everywhere else `publishToInstagram` returns a dry run (`ig_media_id` prefixed `dry-run-`) without any network call. Don't weaken that.
 - `api/_lib/igToken.ts`: the token lives in `app_settings`, is refreshed when older than 7 days, and is re-seeded when `IG_ACCESS_TOKEN` changes (fingerprint in `ig_token_seed`). `api/instagram.ts` reads through it and falls back to the env var if the table is missing.
-- Schema changes are plain SQL in `db/migrations/`, run by hand on each Neon branch.
+- **Scheduling:** Instagram's API can't schedule and Hobby cron is daily-only, so `.github/workflows/scheduler.yml` (every 15 min, runs from `main` only) POSTs `api/cron.ts` on production with `Authorization: Bearer $CRON_SECRET`. That refreshes the token and calls `publishDuePosts()`: posts stuck in `publishing` for 10+ minutes (`claimed_at`) are marked `failed` — never re-published, since Instagram may already have them — then due `scheduled` posts publish oldest-first within a 30s budget. Failed posts are never auto-retried. The workflow fails the run when anything failed. `api/cron.ts` is a separate function from `api/admin.ts` (it doesn't use the session cookie). Datetimes from the browser go through `src/lib/scheduleTime.ts` (datetime-local → ISO with offset); the server rejects times in the past.
+- Schema changes are plain SQL in `db/migrations/`, run by hand on each Neon branch. When code needs a new table/column, add it to the missing-migration regex in `api/admin.ts`'s catch.
 
 ## Paused features
 

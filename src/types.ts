@@ -145,8 +145,18 @@ export interface IgPostInput {
   aspect: IgAspect;
   background: string;
   slides: IgSlide[];
-  /** Save for later, or publish right away. */
-  action: 'draft' | 'publish';
+  /** Save for later, publish right away, or publish at `scheduledAt`. */
+  action: 'draft' | 'publish' | 'schedule';
+  /** ISO timestamp; required when action is 'schedule'. */
+  scheduledAt?: string | null;
+}
+
+/** Changes to an existing post (PATCH /api/admin/ig-posts/:id). */
+export interface IgPostChange {
+  caption?: string;
+  /** publish now; schedule (or reschedule) at scheduledAt; unschedule back to draft. */
+  action?: 'publish' | 'schedule' | 'unschedule';
+  scheduledAt?: string;
 }
 
 export interface IgPost {

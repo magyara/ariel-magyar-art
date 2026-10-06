@@ -15,6 +15,7 @@ import {
 } from '../../lib/adminApi';
 import { resizeToJpeg } from '../../lib/imagePrep';
 import { closestAspect, measureImage, renderIgImage } from '../../lib/igImage';
+import { formatScheduled, localInputToIso, scheduleProblem } from '../../lib/scheduleTime';
 import { IG_CAPTION_MAX, IG_HASHTAG_MAX, IG_SLIDES_MAX, IMAGE_SLOTS, REQUIRED_SLOTS } from '../../types';
 import type {
   AdminArtwork,
@@ -225,7 +226,9 @@ export default function ArtworkForm() {
             ? `The Instagram caption is over ${IG_CAPTION_MAX} characters.`
             : countHashtags(igCaption) > IG_HASHTAG_MAX
               ? `Instagram allows at most ${IG_HASHTAG_MAX} hashtags.`
-              : null;
+              : ig.action === 'schedule'
+                ? scheduleProblem(ig.scheduledAt)
+                : null;
       if (problem) {
         setError(problem);
         return;
@@ -311,7 +314,13 @@ export default function ArtworkForm() {
           slides.push({ sourceUrl: img.url, igUrl, ...fit });
         }
 
-        setStatus(ig.action === 'publish' ? 'Posting to Instagram…' : 'Saving Instagram draft…');
+        setStatus(
+          ig.action === 'publish'
+            ? 'Posting to Instagram…'
+            : ig.action === 'schedule'
+              ? 'Scheduling Instagram post…'
+              : 'Saving Instagram draft…',
+        );
         const post = await createIgPost({
           artworkId,
           caption: igCaption,
@@ -319,6 +328,7 @@ export default function ArtworkForm() {
           background: ig.background,
           slides,
           action: ig.action,
+          scheduledAt: ig.action === 'schedule' ? localInputToIso(ig.scheduledAt) : null,
         });
 
         const outcome =
@@ -326,9 +336,11 @@ export default function ArtworkForm() {
             ? `Instagram rejected the post: ${post.error} You can retry it below.`
             : post.status === 'draft'
               ? 'Instagram draft created.'
-              : post.dryRun
-                ? 'Instagram dry run complete — nothing was posted (only the live site posts).'
-                : 'Posted to Instagram.';
+              : post.status === 'scheduled' && post.scheduledAt
+                ? `Instagram post scheduled for ${formatScheduled(post.scheduledAt)}.`
+                : post.dryRun
+                  ? 'Instagram dry run complete — nothing was posted (only the live site posts).'
+                  : 'Posted to Instagram.';
         navigate('/admin/instagram', { state: { notice: `Saved “${fields.title}”. ${outcome}` } });
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'unknown error';
@@ -521,7 +533,7 @@ export default function ArtworkForm() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
           <button type="submit" style={{ ...primaryButton, opacity: busy ? 0.6 : 1 }} disabled={busy}>
             {id ? 'Save changes' : 'Add artwork'}
-            {ig.enabled && (ig.action === 'publish' ? ' & post' : ' & save draft')}
+            {ig.enabled && { publish: ' & post', schedule: ' & schedule', draft: ' & save draft' }[ig.action]}
           </button>
           <Link to="/admin" style={secondaryButton}>Cancel</Link>
           {status && <span style={{ color: text.soft, fontSize: 15 }}>{status}</span>}

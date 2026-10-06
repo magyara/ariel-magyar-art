@@ -1,0 +1,48 @@
+name: Instagram scheduler
+
+# Publishes scheduled Instagram posts that are due and keeps the Instagram
+# token refreshed. Vercel Hobby's built-in cron only runs once a day, so
+# GitHub Actions is the timer. GitHub runs scheduled workflows from the
+# default branch (main) only, and may start them several minutes late.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# Never let two runs overlap; publishing is also guarded in the database.
+concurrency:
+  group: instagram-scheduler
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Publish due posts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://www.arielmagyar.art' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Call the scheduler endpoint
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repository secret is not set"
+            exit 1
+          fi
+
+          if ! body=$(curl -sS --fail-with-body --max-time 90 --retry 2 --retry-all-errors \
+            -X POST -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron"); then
+            echo "::error::Scheduler endpoint failed: $body"
+            exit 1
+          fi
+          echo "$body" | jq .
+
+          failed=$(echo "$body" | jq '(.failed | length) + (.interrupted | length)')
+          if [ "$failed" -gt 0 ]; then
+            echo "::error::$failed scheduled post(s) failed — see /admin/instagram"
+            exit 1
+          fi
+          if [ "$(echo "$body" | jq '.tokenOk')" != "true" ]; then
+            echo "::warning::No Instagram token available"
+          fi

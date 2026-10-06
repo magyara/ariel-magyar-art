@@ -15,11 +15,10 @@ import {
     deletePost,
     getStatus,
     listPosts,
-    parseCaption,
+    changePost,
+    parsePostChange,
     parsePostInput,
-    publishPost,
     setDefaultHashtags,
-    updateCaption,
 } from './_lib/adminInstagram.js';
 import type { AdminSession } from '../src/types.js';
 
@@ -146,15 +145,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const id = Number(idPart);
                 if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
 
-                // PATCH saves a new caption (if given), then publishes when asked.
+                // PATCH: edit caption and/or publish, schedule, or unschedule.
                 if (method === 'PATCH') {
-                    let post = null;
-                    if (req.body?.caption !== undefined) {
-                        const parsed = parseCaption(req.body);
-                        if ('error' in parsed) return res.status(400).json({ error: parsed.error });
-                        post = await updateCaption(id, parsed.data);
-                    }
-                    if (req.body?.action === 'publish') post = await publishPost(id);
+                    const parsed = parsePostChange(req.body);
+                    if ('error' in parsed) return res.status(400).json({ error: parsed.error });
+                    const post = await changePost(id, parsed.data);
                     return post ? res.status(200).json({ post }) : res.status(404).json({ error: 'Not found' });
                 }
                 if (method === 'DELETE') {
@@ -168,10 +163,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (err) {
         console.error('admin request failed', method, route, err);
         const message = err instanceof Error ? err.message : 'Unknown error';
-        // Postgres "undefined table": the Instagram migration hasn't been run on this database.
-        if (/relation "(app_settings|instagram_posts)" does not exist/.test(message)) {
+        // Missing table/column: a db/migrations file hasn't been run on this database.
+        if (/relation "(app_settings|instagram_posts|artwork_displays)" does not exist|column "(claimed_at|added_on)" does not exist/.test(message)) {
             return res.status(500).json({
-                error: 'The Instagram tables are missing from this database. Run db/migrations/001_instagram.sql on it, then try again.',
+                error: 'This database is missing a migration. Run the files in db/migrations/ on it (in order), then try again.',
             });
         }
         return res.status(500).json({ error: message });
