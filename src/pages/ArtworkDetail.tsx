@@ -4,7 +4,7 @@ import FramedImage from '../components/FramedImage';
 import { SkeletonTile, SkeletonLine } from '../components/SkeletonTile';
 import { useArtwork } from '../hooks/useArtworks';
 import NotFound from './NotFound';
-import { theme, text, eyebrow } from '../theme';
+import { theme, light, text, eyebrow } from '../theme';
 
 export default function ArtworkDetail() {
   const { id } = useParams();
@@ -42,7 +42,7 @@ export default function ArtworkDetail() {
         margin: '0 auto',
       }}
     >
-      <Link to="/artwork" style={{ ...eyebrow, color: 'rgba(244,235,225,0.72)', display: 'inline-block', marginBottom: 32, padding: '10px 0' }}>
+      <Link to="/artwork" style={{ ...eyebrow, color: light.softer, display: 'inline-block', marginBottom: 32, padding: '10px 0' }}>
         ← All artwork
       </Link>
 
@@ -98,7 +98,7 @@ export default function ArtworkDetail() {
                 style={{
                   display: 'block',
                   width: '100%',
-                  border: `1px solid ${i === index ? theme.brass : 'rgba(244,235,225,0.38)'}`,
+                  border: `1px solid ${i === index ? light.accent : 'rgba(20,35,28,0.3)'}`,
                   opacity: i === index ? 1 : 0.6,
                 }}
               >
@@ -117,7 +117,7 @@ export default function ArtworkDetail() {
         </div>
 
         <div style={{ position: 'sticky', top: 120 }}>
-          <div style={{ fontFamily: theme.script, fontSize: 22, color: theme.brass, marginBottom: 10 }}>
+          <div style={{ fontFamily: theme.script, fontSize: 22, color: light.accent, marginBottom: 10 }}>
             {piece.place}
           </div>
           <h1
@@ -132,28 +132,28 @@ export default function ArtworkDetail() {
           >
             {piece.title}
           </h1>
-          <p style={{ fontSize: 16, lineHeight: 1.85, color: text.softer, margin: '0 0 34px', textWrap: 'pretty' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.85, color: light.soft, margin: '0 0 34px', textWrap: 'pretty' }}>
             {piece.story}
           </p>
 
           {piece.display && (
-            <div style={{ border: '1px solid rgba(200,162,99,0.45)', padding: '20px 22px', marginBottom: 34 }}>
+            <div style={{ border: '1px solid rgba(121,86,30,0.5)', padding: '20px 22px', marginBottom: 34 }}>
               <div
                 style={{
                   fontSize: 12,
                   letterSpacing: '0.22em',
                   textTransform: 'uppercase',
-                  color: theme.brass,
+                  color: light.accent,
                   marginBottom: 10,
                 }}
               >
                 Currently on view
               </div>
-              <div style={{ fontFamily: theme.serif, fontSize: 22, color: theme.paper, marginBottom: 4 }}>
+              <div style={{ fontFamily: theme.serif, fontSize: 22, color: light.text, marginBottom: 4 }}>
                 {[piece.display.venue, piece.display.city].filter(Boolean).join(' · ')}
               </div>
               {piece.display.dates && (
-                <div style={{ fontSize: 14, letterSpacing: '0.06em', color: 'rgba(244,235,225,0.7)' }}>
+                <div style={{ fontSize: 14, letterSpacing: '0.06em', color: light.softer }}>
                   {piece.display.dates}
                 </div>
               )}
@@ -165,44 +165,44 @@ export default function ArtworkDetail() {
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
-              background: 'rgba(244,235,225,0.12)',
+              background: light.rule,
               marginBottom: 34,
             }}
           >
             {specs.map(([k, v]) => (
               <div
                 key={k}
-                style={{ display: 'flex', justifyContent: 'space-between', gap: 20, padding: '14px 2px', background: theme.ink }}
+                style={{ display: 'flex', justifyContent: 'space-between', gap: 20, padding: '14px 2px', background: light.page }}
               >
-                <span style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(244,235,225,0.65)' }}>
+                <span style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: light.softer }}>
                   {k}
                 </span>
-                <span style={{ fontSize: 15, color: theme.paper }}>{v}</span>
+                <span style={{ fontSize: 15, color: light.text }}>{v}</span>
               </div>
             ))}
           </div>
 
           {piece.exhibitions && piece.exhibitions.length > 0 && (
             <div style={{ marginBottom: 34 }}>
-              <div style={{ fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: theme.brass, marginBottom: 14 }}>
+              <div style={{ fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: light.accent, marginBottom: 14 }}>
                 Exhibition history
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(244,235,225,0.12)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: light.rule }}>
                 {piece.exhibitions.map((ex) => (
                   <div
                     key={`${ex.venue}-${ex.dates}`}
-                    style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '4px 20px', padding: '14px 2px', background: theme.ink }}
+                    style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '4px 20px', padding: '14px 2px', background: light.page }}
                   >
-                    <span style={{ fontSize: 15, color: theme.paper }}>
+                    <span style={{ fontSize: 15, color: light.text }}>
                       {[ex.venue, ex.city].filter(Boolean).join(' · ')}
                       {ex.timing !== 'past' && (
-                        <span style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: theme.brass, marginLeft: 12 }}>
+                        <span style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: light.accent, marginLeft: 12 }}>
                           {ex.timing === 'current' ? 'Now on view' : 'Upcoming'}
                         </span>
                       )}
                     </span>
                     {ex.dates && (
-                      <span style={{ fontSize: 14, letterSpacing: '0.04em', color: 'rgba(244,235,225,0.7)' }}>{ex.dates}</span>
+                      <span style={{ fontSize: 14, letterSpacing: '0.04em', color: light.softer }}>{ex.dates}</span>
                     )}
                   </div>
                 ))}
@@ -224,7 +224,7 @@ function ArtworkDetailSkeleton() {
         margin: '0 auto',
       }}
     >
-      <div style={{ ...eyebrow, color: 'rgba(244,235,225,0.72)', display: 'inline-block', marginBottom: 32, padding: '10px 0' }}>
+      <div style={{ ...eyebrow, color: light.softer, display: 'inline-block', marginBottom: 32, padding: '10px 0' }}>
         ← All artwork
       </div>
 
@@ -256,9 +256,9 @@ function ArtworkDetailSkeleton() {
             <SkeletonLine width="60%" height={14} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(244,235,225,0.12)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: light.rule }}>
             {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ padding: '14px 2px', background: theme.ink }}>
+              <div key={i} style={{ padding: '14px 2px', background: light.page }}>
                 <SkeletonLine width={`${40 + (i % 3) * 10}%`} height={13} />
               </div>
             ))}

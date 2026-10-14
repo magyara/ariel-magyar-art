@@ -1,5 +1,5 @@
 import { useImageRatio } from '../hooks/useImageRatio';
-import { theme } from '../theme';
+import { light } from '../theme';
 
 interface Props {
   src: string;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 /**
- * An artwork in a bone-colored frame. The frame takes the image's true aspect
+ * An artwork in a hairline frame. The frame takes the image's true aspect
  * ratio, so the border hugs the art with no blank space.
  */
 export default function FramedImage({ src, alt, fallbackRatio, position = 'center' }: Props) {
@@ -21,9 +21,9 @@ export default function FramedImage({ src, alt, fallbackRatio, position = 'cente
       aria-label={alt}
       style={{
         width: '100%',
-        border: theme.border,
+        border: light.border,
         aspectRatio: ratio,
-        backgroundColor: theme.inkPanel,
+        backgroundColor: light.panel,
         backgroundImage: `url(${src})`,
         backgroundSize: 'cover',
         backgroundRepeat: 'no-repeat',

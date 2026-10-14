@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { theme, text, eyebrow } from '../theme';
 import { SITE } from '../data/artworks';
+import InstagramMark from './InstagramMark';
 
 const LINKS = [
   { label: 'Home', to: '/' },
@@ -11,7 +12,9 @@ const LINKS = [
 export default function Footer() {
   return (
     <footer
+      data-dark=""
       style={{
+        color: theme.paper,
         backgroundColor: theme.inkDeep,
         backgroundImage:
           'linear-gradient(rgba(11,22,17,0.58),rgba(11,22,17,0.58)), url(/images/roses_green.jpg)',
@@ -44,7 +47,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <nav aria-label="Footer" style={{ display: 'flex', gap: '6px 28px', flexWrap: 'wrap' }}>
+        <nav aria-label="Footer" style={{ display: 'flex', gap: '6px 28px', flexWrap: 'wrap', alignItems: 'center' }}>
           {LINKS.map((l) => (
             <Link
               key={l.to}
@@ -54,6 +57,15 @@ export default function Footer() {
               {l.label}
             </Link>
           ))}
+          <a
+            href={SITE.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Instagram ${SITE.instagramHandle} (opens in a new tab)`}
+            style={{ display: 'flex', alignItems: 'center', padding: '10px 0', color: 'rgba(244,235,225,0.72)' }}
+          >
+            <InstagramMark size={20} />
+          </a>
         </nav>
       </div>
 

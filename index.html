@@ -31,43 +31,36 @@
       body {
         margin: 0;
         padding: 0;
-        background: #0b1611;
+        background: #fdfcfa;
+      }
+      /* Link and focus colours for the light page; dark surfaces opt back in. */
+      :root {
+        --link: #14231c;
+        --accent: #79561e;
+      }
+      [data-dark] {
+        --link: #ded3c4;
+        --accent: #c8a263;
       }
       * {
         box-sizing: border-box;
       }
       a {
-        color: #ded3c4;
+        color: var(--link);
         text-decoration: none;
         transition: color 180ms ease, opacity 180ms ease;
       }
       a:hover,
       a:focus-visible {
-        color: #c8a263 !important;
+        color: var(--accent) !important;
       }
       a:has(img):hover,
       a:has(img):focus-visible {
         opacity: 0.82;
       }
-      a.btn-solid {
-        transition: color 180ms ease, background-color 180ms ease;
-      }
-      a.btn-solid:hover,
-      a.btn-solid:focus-visible {
-        color: #79561e !important;
-        border-color: #79561e !important;
-      }
-      a.btn-instagram {
-        transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
-      }
-      a.btn-instagram:hover,
-      a.btn-instagram:focus-visible {
-        color: #966f30 !important;
-        border-color: #966f30 !important;
-      }
       a.no-hover:hover,
       a.no-hover:focus-visible {
-        color: #c8a263 !important;
+        color: var(--accent) !important;
       }
       input,
       textarea,
@@ -89,13 +82,13 @@
         max-width: 100%;
       }
       :focus-visible {
-        outline: 2px solid #c8a263;
+        outline: 2px solid var(--accent);
         outline-offset: 3px;
       }
       input:focus,
       textarea:focus,
       select:focus {
-        border-bottom-color: #c8a263 !important;
+        border-bottom-color: var(--accent) !important;
       }
       ::selection {
         background: #ded3c4;

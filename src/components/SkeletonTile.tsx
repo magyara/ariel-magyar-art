@@ -1,4 +1,4 @@
-import { theme, placeholderTile, placeholderLabel } from '../theme';
+import { light, placeholderTile, placeholderLabel } from '../theme';
 
 interface SkeletonTileProps {
   ratio?: string;
@@ -11,7 +11,7 @@ export function SkeletonTile({ ratio = '1 / 1', label }: SkeletonTileProps) {
       data-skeleton="1"
       style={{
         ...placeholderTile,
-        border: theme.border,
+        border: light.border,
         aspectRatio: ratio,
       }}
     >
@@ -32,7 +32,7 @@ export function SkeletonLine({ width = '100%', height = 14 }: SkeletonLineProps)
       style={{
         width,
         height,
-        background: 'rgba(244,235,225,0.08)',
+        background: 'rgba(20,35,28,0.08)',
       }}
     />
   );

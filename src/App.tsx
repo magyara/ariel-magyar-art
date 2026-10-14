@@ -9,7 +9,7 @@ import Artwork from './pages/Artwork';
 import ArtworkDetail from './pages/ArtworkDetail';
 import About from './pages/About';
 import NotFound from './pages/NotFound';
-import { theme } from './theme';
+import { theme, light } from './theme';
 
 // Admin code is split into its own chunk so visitors never download it.
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
@@ -23,20 +23,23 @@ function ScrollToTop() {
 }
 
 const shell = {
-  background: theme.ink,
-  color: theme.paper,
+  background: light.page,
+  color: light.text,
   fontFamily: theme.sans,
   fontWeight: 300,
   minHeight: '100vh',
   overflowX: 'clip',
 } as const;
 
+// The admin keeps the dark palette its own styles are written against.
+const adminShell = { ...shell, background: theme.ink, color: theme.paper } as const;
+
 export default function App() {
   const { pathname } = useLocation();
 
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
     return (
-      <div style={shell}>
+      <div data-dark="" style={adminShell}>
         <Suspense fallback={null}>
           <Routes>
             <Route path="/admin/*" element={<AdminApp />} />
