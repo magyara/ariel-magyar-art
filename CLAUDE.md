@@ -50,9 +50,9 @@ Client side, `src/hooks/useArtworks.ts` (`useArtworks({ featured })`, `useArtwor
 
 ## Styling
 
-No CSS framework, no CSS modules. Every component styles itself with inline `style={{}}` objects composed from `src/theme.ts` — colors (`theme.ink`, `theme.brass`, `theme.paper`), fonts (`serif`/`sans`/`script`), and shared `CSSProperties` objects (`eyebrow`, `h1`, `solidButton`, `ghostButton`, `underlineLink`, `placeholderTile`). Spread and override them rather than writing literal colors.
+No CSS framework, no CSS modules. Every component styles itself with inline `style={{}}` objects composed from `src/theme.ts` — colors (`light.*` for the public site's near-white pages; the dark `theme.ink`/`theme.brass`/`theme.paper` palette for the footer, image overlays and the admin), fonts (`serif`/`sans`/`script`), and shared `CSSProperties` objects (`eyebrow`, `h1`, `solidButton`, `ghostButton`, `underlineLink`, `placeholderTile`). Spread and override them rather than writing literal colors.
 
-What inline styles can't express lives in the `<style>` block in `index.html`: link/hover/focus states, the `.btn-solid` / `.btn-instagram` hover classes, `:focus-visible` rings, the `[data-reveal]` scroll-in transition, and the `[data-skeleton]` pulse — all with `prefers-reduced-motion` opt-outs. Add new global animation or pseudo-class behavior there.
+What inline styles can't express lives in the `<style>` block in `index.html`: link/hover/focus states (colours come from `--link`/`--accent`, which `[data-dark]` surfaces override), `:focus-visible` rings, the `[data-reveal]` scroll-in transition, and the `[data-skeleton]` pulse — all with `prefers-reduced-motion` opt-outs. Add new global animation or pseudo-class behavior there.
 
 Responsive layout is done in JS, not media queries: `useNarrow()` from `src/hooks/useMediaQuery.ts` (760px breakpoint). Scroll-in reveals use `useReveal(deps)` — pass the loading flag as a dep so tiles that mount after fetch still animate. `FramedImage` sizes its frame from the image's intrinsic aspect ratio via `useImageRatio`.
 

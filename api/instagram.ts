@@ -17,7 +17,7 @@ export interface InstagramPost {
   caption?: string;
 }
 
-const LIMIT = 5;
+const LIMIT = 4;
 const CACHE_MS = 60 * 60 * 1000;
 const CACHE_OK = 'public, max-age=3600, stale-while-revalidate=86400';
 // Failures must not be cached for long: an empty feed from an expired token

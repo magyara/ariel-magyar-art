@@ -5,7 +5,7 @@ import { SkeletonTile, SkeletonLine } from '../components/SkeletonTile';
 import { useArtworks } from '../hooks/useArtworks';
 import { useCategories } from '../hooks/useCategories';
 import { useReveal } from '../hooks/useReveal';
-import { theme, text, h1, eyebrow, availColor } from '../theme';
+import { theme, light, h1, eyebrow, availColor } from '../theme';
 
 export default function Artwork() {
   const { data: ARTWORKS, loading, error } = useArtworks();
@@ -20,7 +20,7 @@ export default function Artwork() {
     <div
       style={{
         padding: `clamp(50px,8vw,90px) ${theme.pageX} clamp(70px,11vw,130px)`,
-        maxWidth: 1280,
+        maxWidth: 1440,
         margin: '0 auto',
       }}
     >
@@ -33,7 +33,7 @@ export default function Artwork() {
           flexWrap: 'wrap',
           marginBottom: 52,
           paddingBottom: 20,
-          borderBottom: '1px solid rgba(244,235,225,0.12)',
+          borderBottom: `1px solid ${light.rule}`,
         }}
       >
         {CATEGORIES.map((c) => (
@@ -44,8 +44,8 @@ export default function Artwork() {
             aria-pressed={cat === c}
             style={{
               ...eyebrow,
-              color: cat === c ? theme.paper : text.softer,
-              borderBottom: `1px solid ${cat === c ? theme.brass : 'transparent'}`,
+              color: cat === c ? light.text : light.softer,
+              borderBottom: `1px solid ${cat === c ? light.accent : 'transparent'}`,
               padding: '11px 0 7px',
             }}
           >
@@ -55,9 +55,9 @@ export default function Artwork() {
       </div>
 
       {error ? (
-        <p style={{ ...eyebrow, color: text.faint }}>Couldn't load artwork right now.</p>
+        <p style={{ ...eyebrow, color: light.faint }}>Couldn't load artwork right now.</p>
       ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(340px,1fr))', gap: '52px 40px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,460px),1fr))', gap: '64px 48px' }}>
         {loading
           ? [0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i}>
@@ -82,14 +82,14 @@ export default function Artwork() {
                 style={{
                   fontSize: 12,
                   letterSpacing: '0.14em',
-                  color: availColor(a.avail),
+                  color: availColor(a.avail, true),
                   whiteSpace: 'nowrap',
                 }}
               >
                 {a.avail}
               </div>
             </div>
-            <div style={{ fontSize: 14, color: text.softer, marginTop: 6 }}>
+            <div style={{ fontSize: 14, color: light.softer, marginTop: 6 }}>
               {a.medium} · {a.size} · {a.year}
               {/* {a.price !== '—' ? ` · ${a.price}` : ''} */}
             </div>
@@ -99,7 +99,7 @@ export default function Artwork() {
                   fontSize: 12,
                   letterSpacing: '0.16em',
                   textTransform: 'uppercase',
-                  color: theme.brass,
+                  color: light.accent,
                   marginTop: 8,
                 }}
               >

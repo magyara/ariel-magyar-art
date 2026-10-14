@@ -1,5 +1,5 @@
 import { useReveal } from '../hooks/useReveal';
-import { theme, text, h1 } from '../theme';
+import { theme, light, h1 } from '../theme';
 
 const PROCESS_PHOTOS = [
   {
@@ -44,7 +44,7 @@ export default function About() {
               fontFamily: theme.serif,
               fontSize: 28,
               lineHeight: 1.4,
-              color: theme.paper,
+              color: light.text,
               margin: '0 0 26px',
               textWrap: 'pretty',
             }}
@@ -52,23 +52,23 @@ export default function About() {
             I moved from Michigan to Arlington, Virginia, where I found inspiration in the wisteria-scented streets of
             Georgetown, brick buildings of Old Town Alexandria, and lush vineyards of Shenandoah.
           </p>
-          <p style={{ fontSize: 16, lineHeight: 1.9, color: text.soft, margin: '0 0 20px', textWrap: 'pretty' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.9, color: light.soft, margin: '0 0 20px', textWrap: 'pretty' }}>
             Although I’ve always been an artist, years spent building a career in software engineering reminded me how
             important creativity is to my identity.
           </p>
-          <p style={{ fontSize: 16, lineHeight: 1.9, color: text.soft, margin: '0 0 20px', textWrap: 'pretty' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.9, color: light.soft, margin: '0 0 20px', textWrap: 'pretty' }}>
             I want my art to depict not just places, but the memories and emotions they hold. I’m drawn to the way our
             minds soften the details of meaningful experiences, leaving behind a dreamy recollection of vivid color,
             movement, and feeling.
           </p>
-          <p style={{ fontSize: 16, lineHeight: 1.9, color: text.soft, margin: 0, textWrap: 'pretty' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.9, color: light.soft, margin: 0, textWrap: 'pretty' }}>
             I want those who experience my work to be reminded of their own meaningful moments, whether it’s a busy
             street corner the first time they step out of a hotel in a new city, or a bouquet celebrating someone they
             love. My hope is that the emotions tied to those memories linger long after the moment itself has passed.
           </p>
         </div>
 
-        <div style={{ aspectRatio: '3 / 4', overflow: 'hidden', border: theme.border }}>
+        <div style={{ aspectRatio: '3 / 4', overflow: 'hidden', border: light.border }}>
           <img
             src="/images/ariel_about.png"
             alt="Ariel Magyar sitting in a sunlit window, waving"
@@ -82,7 +82,7 @@ export default function About() {
           <div
             key={p.src}
             data-reveal="1"
-            style={{ aspectRatio: '4 / 5', overflow: 'hidden', border: theme.border }}
+            style={{ aspectRatio: '4 / 5', overflow: 'hidden', border: light.border }}
           >
             <img
               src={p.src}

@@ -22,6 +22,26 @@ export const text = {
   faint: 'rgba(244,235,225,0.58)',
 } as const;
 
+/**
+ * The public pages sit on a near-white surface so the art carries the colour.
+ * Header, footer, the home hero and the admin stay on the dark `theme` palette.
+ */
+export const light = {
+  page: '#FDFCFA',
+  panel: '#F1ECE3',
+  text: theme.ink,
+  black: '#000000',
+  green: '#2E5A43',
+  sage: '#A3BBAC',
+  soft: 'rgba(20,35,28,0.84)',
+  softer: 'rgba(20,35,28,0.74)',
+  faint: 'rgba(20,35,28,0.64)',
+  // Brass darkened until it reads on white.
+  accent: '#79561E',
+  rule: 'rgba(20,35,28,0.14)',
+  border: '1px solid rgba(20,35,28,0.22)',
+} as const;
+
 export const eyebrow: CSSProperties = {
   fontSize: 13,
   letterSpacing: '0.2em',
@@ -56,13 +76,13 @@ export const ghostButton: CSSProperties = {
 
 export const underlineLink: CSSProperties = {
   ...eyebrow,
-  color: theme.bone,
-  borderBottom: '1px solid rgba(222,211,196,0.6)',
+  color: light.text,
+  borderBottom: '1px solid rgba(20,35,28,0.45)',
   padding: '10px 0 6px',
 };
 
 export const placeholderTile: CSSProperties = {
-  background: 'repeating-linear-gradient(135deg,#1E3229 0 10px,#263D32 10px 20px)',
+  background: 'repeating-linear-gradient(135deg,#F3F0EA 0 10px,#EBE7DF 10px 20px)',
   display: 'flex',
   alignItems: 'flex-end',
   padding: 16,
@@ -72,8 +92,8 @@ export const placeholderLabel: CSSProperties = {
   fontFamily: theme.mono,
   fontSize: 11,
   letterSpacing: '0.08em',
-  color: text.softer,
+  color: light.softer,
 };
 
-export const availColor = (avail: string) =>
-  avail === 'Unavailable' ? text.faint : theme.brass;
+export const availColor = (avail: string, onLight = false) =>
+  avail === 'Unavailable' ? (onLight ? light.faint : text.faint) : onLight ? light.accent : theme.brass;
